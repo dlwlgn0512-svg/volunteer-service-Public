@@ -6,6 +6,8 @@
   <title>봉사 구역 다중 선택 배정기</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- 엑셀 파싱 라이브러리 (SheetJS) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
   <style>
     body { font-family: 'Pretendard', sans-serif; -webkit-tap-highlight-color: transparent; }
@@ -33,20 +35,26 @@
 
   <main class="p-4 space-y-4 max-w-md mx-auto">
 
-    <!-- 1단계: 당일 출석 체크 및 봉사자 현장 추가/수정 -->
+    <!-- 1단계: 당일 출석 체크 및 봉사자 엑셀 업로드/현장 추가 -->
     <section class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
       <div class="flex items-center justify-between">
         <label class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
           <span class="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] flex items-center justify-center font-bold">1</span>
-          오늘 참여자 체크 (<span id="totalPoolCount">80</span>명 중 선택)
+          오늘 참여자 체크 (<span id="totalPoolCount">0</span>명 중 선택)
         </label>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5">
+          <!-- 숨겨진 파일 인풋 -->
+          <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="handleExcelUpload(event)">
+          <button onclick="document.getElementById('excelFileInput').click()" class="text-[11px] text-emerald-700 font-bold bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded-lg border border-emerald-200 flex items-center gap-1 transition">
+            <i data-lucide="file-spreadsheet" class="w-3 h-3"></i>
+            <span>엑셀등록</span>
+          </button>
           <button onclick="openAddModal()" class="text-[11px] text-blue-600 font-bold bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg border border-blue-200 flex items-center gap-1 transition">
             <i data-lucide="user-plus" class="w-3 h-3"></i>
-            <span>봉사자 추가</span>
+            <span>추가</span>
           </button>
           <span class="text-slate-200 text-xs">|</span>
-          <button onclick="clearTodayAttendance()" class="text-[11px] text-slate-400 hover:text-rose-500 transition">출석 초기화</button>
+          <button onclick="clearTodayAttendance()" class="text-[11px] text-slate-400 hover:text-rose-500 transition">출석초기화</button>
         </div>
       </div>
 
@@ -127,7 +135,7 @@
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
           <i data-lucide="user-plus" class="w-4 h-4 text-blue-600"></i>
-          새 봉사자 현장 등록
+          새 봉사자 직접 등록
         </h3>
         <button onclick="closeAddModal()" class="text-slate-400 hover:text-slate-600">
           <i data-lucide="x" class="w-4 h-4"></i>
@@ -186,59 +194,10 @@
   </div>
 
   <script>
-    const defaultVolunteers = [
-      { id: 1, name: "이은평", phone: "010-9918-2179" }, { id: 2, name: "서현우", phone: "010-4066-1935" },
-      { id: 3, name: "구은희", phone: "010-3902-1935" }, { id: 4, name: "김지훈", phone: "010-2764-1914" },
-      { id: 5, name: "하서진", phone: "010-5521-7984" }, { id: 6, name: "이지후", phone: "010-4677-8226" },
-      { id: 7, name: "정수빈", phone: "010-9556-9984" }, { id: 8, name: "김명분", phone: "010-3758-9377" },
-      { id: 9, name: "김옥란", phone: "010-5067-4241" }, { id: 10, name: "서애주", phone: "010-2738-2755" },
-      { id: 11, name: "나승범", phone: "010-2835-0979" }, { id: 12, name: "류한상", phone: "010-2911-9037" },
-      { id: 13, name: "박칠만", phone: "010-5551-8994" }, { id: 14, name: "유동석", phone: "010-7194-6946" },
-      { id: 15, name: "이일천", phone: "010-7245-0729" }, { id: 16, name: "임원진", phone: "010-9870-0410" },
-      { id: 17, name: "김영심", phone: "010-8283-9410" }, { id: 18, name: "임다솜", phone: "010-9805-9410" },
-      { id: 19, name: "임유빈", phone: "010-4677-9410" }, { id: 20, name: "김창홍", phone: "010-3322-7440" },
-      { id: 21, name: "김정희", phone: "010-3827-7440" }, { id: 22, name: "김종학", phone: "010-3543-9721" },
-      { id: 23, name: "정영희", phone: "010-3650-9721" }, { id: 24, name: "김수정", phone: "010-7736-6177" },
-      { id: 25, name: "김경민", phone: "010-9802-1935" }, { id: 26, name: "김창수", phone: "010-2540-8569" },
-      { id: 27, name: "류진실", phone: "010-9329-3378" }, { id: 28, name: "박성준", phone: "010-2644-8214" },
-      { id: 29, name: "소병진", phone: "010-4814-9623" }, { id: 30, name: "신솔이", phone: "010-3886-1914" },
-      { id: 31, name: "전동욱", phone: "010-3224-1083" }, { id: 32, name: "장민기", phone: "010-2909-1458" },
-      { id: 33, name: "방민지", phone: "010-2830-9352" }, { id: 34, name: "남창식", phone: "010-3813-1914" },
-      { id: 35, name: "권윤희", phone: "010-2157-1975" }, { id: 36, name: "권숙이", phone: "010-8886-8662" },
-      { id: 37, name: "권정혜", phone: "010-5628-1914" }, { id: 38, name: "김규현", phone: "010-8698-3321" },
-      { id: 39, name: "유금년", phone: "010-9767-6950" }, { id: 40, name: "이선혜", phone: "010-2289-3190" },
-      { id: 41, name: "이지윤", phone: "010-6290-2539" }, { id: 42, name: "정수만", phone: "010-3852-2042" },
-      { id: 43, name: "이선애", phone: "010-4564-2884" }, { id: 44, name: "정희도", phone: "010-2560-0004" },
-      { id: 45, name: "황민우", phone: "010-4878-7948" }, { id: 46, name: "정직한", phone: "010-2122-2990" },
-      { id: 47, name: "이슬", phone: "010-2642-3450" }, { id: 48, name: "이영길", phone: "010-2503-9886" },
-      { id: 49, name: "박노순", phone: "010-2699-9886" }, { id: 50, name: "김대호", phone: "010-4972-2487" },
-      { id: 51, name: "손귀숙", phone: "010-9408-5054" }, { id: 52, name: "김은혜", phone: "010-7152-0780" },
-      { id: 53, name: "김서영", phone: "010-4858-2487" }, { id: 54, name: "김상연", phone: "010-2992-1914" },
-      { id: 55, name: "김예지", phone: "010-4321-2728" }, { id: 56, name: "오영숙", phone: "010-7360-4005" },
-      { id: 57, name: "이정희", phone: "010-8010-4595" }, { id: 58, name: "이태걸", phone: "010-2438-4595" },
-      { id: 59, name: "정성훈", phone: "010-2693-0183" }, { id: 60, name: "조일성", phone: "010-2602-1868" },
-      { id: 61, name: "주근자", phone: "010-7326-2591" }, { id: 62, name: "권보호", phone: "010-8520-4722" },
-      { id: 63, name: "한미희", phone: "010-8640-0311" }, { id: 64, name: "전광훈", phone: "010-6303-1914" },
-      { id: 65, name: "조소라", phone: "010-2809-1868" }, { id: 66, name: "최화평", phone: "010-8315-8901" },
-      { id: 67, name: "황중현", phone: "010-6667-1914" }, { id: 68, name: "한지윤", phone: "010-6587-7806" },
-      { id: 69, name: "김경애", phone: "010-9386-1154" }, { id: 70, name: "김동일", phone: "010-3811-4434" },
-      { id: 71, name: "김성희", phone: "010-8121-4434" }, { id: 72, name: "김지호", phone: "010-5485-5249" },
-      { id: 73, name: "류상화", phone: "010-9815-2490" }, { id: 74, name: "양순남", phone: "010-6472-1721" },
-      { id: 75, name: "장옥희", phone: "010-4242-7055" }, { id: 76, name: "정송식", phone: "010-3523-2340" },
-      { id: 77, name: "조명희", phone: "010-5508-2497" },
-      { id: 78, name: "최미화", phone: "" },
-      { id: 79, name: "이은지", phone: "" },
-      { id: 80, name: "이예지", phone: "" }
-    ];
+    // 코드 내부에는 개인정보가 전혀 들어가지 않으며, 브라우저 로컬 저장소에서만 불러옵니다.
+    let allVolunteers = JSON.parse(localStorage.getItem('v6_secure_volunteers')) || [];
 
-    // 저장소에 커스텀 마스터 목록이 있으면 그것을 쓰고, 없으면 기본값으로 초기화
-    let allVolunteers = JSON.parse(localStorage.getItem('v6_master_volunteers'));
-    if (!allVolunteers || allVolunteers.length === 0) {
-      allVolunteers = [...defaultVolunteers];
-      localStorage.setItem('v6_master_volunteers', JSON.stringify(allVolunteers));
-    }
-
-    // [구역번호, 구역명, 상세 표기 주소]
+    // 131개 구역 데이터
     const rawZones = [
       ["1", "동일가스 충전소", "청수로 1 (SK행복충전 동일가스 충전소)"],
       ["2", "중동시장", "수성로 241 (중동시장)"],
@@ -415,9 +374,86 @@
       renderAssignedBoard();
     }
 
-    // 1단계: 출석 풀 렌더링 (설정 버튼 추가)
+    // 엑셀 파일 자동 파싱 함수
+    function handleExcelUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const rows = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+          if (rows.length === 0) {
+            alert('엑셀 파일에 데이터가 없습니다.');
+            return;
+          }
+
+          let newVolunteers = [];
+          rows.forEach((row, idx) => {
+            // 다양한 열 이름 지원 (이름/성명, 전화번호/연락처/휴대폰)
+            let name = row['이름'] || row['성명'] || row['봉사자'] || '';
+            let phone = row['전화번호'] || row['연락처'] || row['휴대폰'] || row['핸드폰'] || row['전화'] || '';
+
+            name = String(name).trim();
+            phone = String(phone).trim();
+
+            if (name) {
+              newVolunteers.push({
+                id: Date.now() + idx,
+                name: name,
+                phone: phone
+              });
+            }
+          });
+
+          if (newVolunteers.length === 0) {
+            alert("엑셀에서 '이름' 열을 찾을 수 없습니다.\n엑셀 맨 첫 줄에 '이름', '전화번호'라고 적혀 있는지 확인해 주세요.");
+            return;
+          }
+
+          if (allVolunteers.length > 0) {
+            if (confirm(`기존 명단(${allVolunteers.length}명)이 있습니다.\n[확인]: 기존 명단을 지우고 새 엑셀 명단(${newVolunteers.length}명)으로 교체\n[취소]: 기존 명단 뒤에 추가`)) {
+              allVolunteers = newVolunteers;
+            } else {
+              allVolunteers = [...allVolunteers, ...newVolunteers];
+            }
+          } else {
+            allVolunteers = newVolunteers;
+          }
+
+          localStorage.setItem('v6_secure_volunteers', JSON.stringify(allVolunteers));
+          filteredPool = [...allVolunteers];
+          document.getElementById('totalPoolCount').innerText = allVolunteers.length;
+
+          renderAttendancePool();
+          renderTodayVolGrid();
+          alert(`총 ${newVolunteers.length}명의 봉사자 명단을 성공적으로 불러왔습니다!`);
+        } catch (err) {
+          alert('엑셀 파일을 읽는 중 오류가 발생했습니다: ' + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+      event.target.value = ''; // 재업로드 가능하도록 초기화
+    }
+
+    // 1단계 출석 풀 렌더링
     function renderAttendancePool() {
       const container = document.getElementById('attendanceGrid');
+      if (filteredPool.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-2 py-6 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
+            등록된 봉사자가 없습니다.<br>상단의 <b>[엑셀등록]</b> 버튼을 눌러 명단을 불러오세요.
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
       container.innerHTML = filteredPool.map(v => {
         const isAttended = attendedIds.has(v.id);
         return `
@@ -482,7 +518,7 @@
       const newVol = { id: newId, name: name, phone: phone };
 
       allVolunteers.push(newVol);
-      localStorage.setItem('v6_master_volunteers', JSON.stringify(allVolunteers));
+      localStorage.setItem('v6_secure_volunteers', JSON.stringify(allVolunteers));
 
       filteredPool = [...allVolunteers];
       attendedIds.add(newId);
@@ -526,7 +562,6 @@
         vol.name = name;
         vol.phone = phone;
 
-        // 이미 배정된 구역이 있다면 배정 정보도 동기화
         zones.forEach(z => {
           z.assignedVols.forEach(av => {
             if (av.id === id) {
@@ -537,7 +572,7 @@
         });
         saveAssignments();
 
-        localStorage.setItem('v6_master_volunteers', JSON.stringify(allVolunteers));
+        localStorage.setItem('v6_secure_volunteers', JSON.stringify(allVolunteers));
         filteredPool = [...allVolunteers];
         closeEditModal();
 
@@ -553,12 +588,12 @@
       const vol = allVolunteers.find(v => v.id === id);
       if (!vol) return;
 
-      if (!confirm(`'${vol.name}' 봉사자를 전체 명단에서 완전히 삭제하시겠습니까?\n(배정된 구역 및 출석 정보에서도 함께 제거됩니다)`)) {
+      if (!confirm(`'${vol.name}' 봉사자를 전체 명단에서 완전히 삭제하시겠습니까?`)) {
         return;
       }
 
       allVolunteers = allVolunteers.filter(v => v.id !== id);
-      localStorage.setItem('v6_master_volunteers', JSON.stringify(allVolunteers));
+      localStorage.setItem('v6_secure_volunteers', JSON.stringify(allVolunteers));
 
       attendedIds.delete(id);
       selectedVolIds.delete(id);
