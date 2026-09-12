@@ -2,535 +2,309 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>봉사 구역 다중 선택 배정기</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>봉사 구역 배정 시스템 (인도자용)</title>
   <style>
-    body { font-family: 'Pretendard', sans-serif; -webkit-tap-highlight-color: transparent; }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --danger: #ef4444;
+      --success: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", sans-serif; }
+    body { background-color: var(--bg); color: var(--text-main); padding: 16px; line-height: 1.5; }
+    .container { max-width: 900px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid var(--border); }
+    h1 { font-size: 1.3rem; font-weight: 700; color: var(--text-main); }
+    .admin-link { font-size: 0.85rem; color: var(--primary); text-decoration: none; font-weight: 600; padding: 6px 12px; background: #eff6ff; border-radius: 6px; }
+    
+    .status-card { background: var(--card-bg); padding: 16px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 16px; display: flex; gap: 12px; align-items: center; justify-content: space-around; text-align: center; }
+    .status-item .num { font-size: 1.4rem; font-weight: 700; color: var(--primary); }
+    .status-item .label { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+
+    .search-box { margin-bottom: 16px; }
+    .search-box input { width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border); font-size: 0.95rem; outline: none; background: #fff; }
+    .search-box input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+    .zone-list { display: flex; flex-direction: column; gap: 12px; }
+    .zone-card { background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+    .zone-card.dev-zone { opacity: 0.6; background: #f1f5f9; }
+    .zone-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .zone-title { font-size: 1.05rem; font-weight: 700; }
+    .zone-title .badge { display: inline-block; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; background: #e2e8f0; color: #475569; margin-left: 6px; vertical-align: middle; }
+    .zone-address { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; word-break: keep-all; }
+    
+    .assign-section { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    select { flex: 1; min-width: 140px; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.9rem; background: #fff; outline: none; }
+    .btn { padding: 9px 14px; border-radius: 8px; border: none; font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+    .btn-sms { background: #03c75a; color: #fff; }
+    .btn-sms:hover { background: #02b150; }
+    .btn-sms:disabled { background: #cbd5e1; cursor: not-allowed; }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-900 min-h-screen pb-24">
-
-  <!-- 상단 네비게이션 -->
-  <header class="bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-30 shadow-sm">
-    <div class="max-w-md mx-auto flex items-center justify-between">
-      <div>
-        <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">인도자 현장 모드</span>
-        <h1 class="text-base font-bold text-slate-900 mt-0.5">봉사 구역 일괄 배정기</h1>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-xs text-slate-500 font-medium">출석:</span>
-        <span id="todayCountBadge" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">0명</span>
-        <span class="text-xs text-slate-500 font-medium ml-1">배정:</span>
-        <span id="assignedCountBadge" class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-200">0명</span>
-      </div>
-    </div>
+<body>
+<div class="container">
+  <header>
+    <h1>봉사 구역 배정</h1>
+    <a href="admin.html" class="admin-link">⚙️ 관리자 페이지</a>
   </header>
 
-  <main class="p-4 space-y-4 max-w-md mx-auto">
-
-    <!-- 1단계: 당일 출석 체크 -->
-    <section class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-      <div class="flex items-center justify-between">
-        <label class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-          <span class="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] flex items-center justify-center font-bold">1</span>
-          오늘 참여자 체크 (<span id="totalPoolCount">73</span>명 중 선택)
-        </label>
-        <button onclick="clearTodayAttendance()" class="text-[11px] text-slate-400 hover:text-rose-500 transition">출석 초기화</button>
-      </div>
-
-      <div class="relative">
-        <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5"></i>
-        <input type="text" id="attSearchInput" oninput="filterAttendancePool()" placeholder="봉사자 검색 (이름 또는 전화번호 뒷자리)" class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-500">
-      </div>
-
-      <div class="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1 no-scrollbar" id="attendanceGrid"></div>
-      <p class="text-[10px] text-slate-400 text-center">* 터치하면 오늘 참여자로 등록/취소됩니다.</p>
-    </section>
-
-    <!-- 2단계: 오늘 참여자 중 배정할 인원 다중 선택 (배정 완료 인원 선택 차단) -->
-    <section class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2.5">
-      <div class="flex items-center justify-between">
-        <label class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-          <span class="w-4 h-4 rounded-full bg-slate-900 text-white text-[10px] flex items-center justify-center font-bold">2</span>
-          배정할 참여자 선택 (<span id="selectedVolCountLabel" class="text-blue-600 font-bold">0명 선택됨</span>)
-        </label>
-        <div class="flex items-center gap-2">
-          <button onclick="selectAllAvailableTodayVols()" class="text-[11px] text-blue-600 hover:underline">대기자 전체선택</button>
-          <span class="text-slate-300 text-xs">|</span>
-          <button onclick="clearSelectedVols()" class="text-[11px] text-slate-400 hover:underline">선택해제</button>
-        </div>
-      </div>
-
-      <!-- 2열 목록 그리드 -->
-      <div class="grid grid-cols-2 gap-2 max-h-44 overflow-y-auto pr-1 no-scrollbar" id="todayVolGrid"></div>
-      <p class="text-[10px] text-slate-400 text-center">* 이미 배정된 참여자는 회색으로 잠겨 선택할 수 없습니다.</p>
-    </section>
-
-    <!-- 3단계: 구역카드 선택 -->
-    <section class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2.5">
-      <div class="flex items-center justify-between">
-        <label class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-          <span class="w-4 h-4 rounded-full bg-slate-900 text-white text-[10px] flex items-center justify-center font-bold">3</span>
-          구역카드 선택 (<span id="zoneCountDisplay">124</span>개)
-        </label>
-        <span class="text-[11px] text-emerald-600 font-bold" id="selectedZoneLabel">1호 선택됨</span>
-      </div>
-
-      <div class="relative">
-        <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5"></i>
-        <input type="text" id="zoneSearchInput" oninput="filterZones()" placeholder="구역 번호나 명칭 검색 (예: 4-1, 롯데슈퍼)" class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500">
-      </div>
-
-      <div class="space-y-1.5 max-h-44 overflow-y-auto pr-1 no-scrollbar" id="zoneList"></div>
-    </section>
-
-    <!-- 배정 확정 버튼 -->
-    <div>
-      <button onclick="confirmMultipleAssignment()" id="btnConfirmAssign" class="w-full py-4 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] rounded-2xl text-white font-bold text-sm shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 transition">
-        <i data-lucide="user-plus" class="w-4 h-4"></i>
-        <span id="assignBtnText">선택한 인원 배정 확정하기</span>
-      </button>
-      <p class="text-[10px] text-slate-400 text-center mt-2">
-        * 배정 완료 후 아래 현황판에서 개별적으로 문자를 발송할 수 있습니다.
-      </p>
+  <div class="status-card">
+    <div class="status-item">
+      <div class="num" id="totalZones">0</div>
+      <div class="label">총 구역</div>
     </div>
+    <div class="status-item">
+      <div class="num" id="assignedCount">0</div>
+      <div class="label">배정 완료</div>
+    </div>
+    <div class="status-item">
+      <div class="num" id="remainCount">0</div>
+      <div class="label">미배정</div>
+    </div>
+  </div>
 
-    <!-- 4단계: 실시간 배정 현황판 -->
-    <section class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-      <div class="flex items-center justify-between">
-        <label class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-          <i data-lucide="clipboard-check" class="w-4 h-4 text-blue-600"></i>
-          구역별 배정 현황판 (<span id="assignedBoardCount">0</span>명 배정됨)
-        </label>
-        <button onclick="resetAllAssignments()" class="text-[11px] text-rose-500 hover:underline">배정 전체 초기화</button>
-      </div>
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="구역 번호 또는 구역명 검색 (예: 36, 효성병원)...">
+  </div>
 
-      <div class="space-y-2.5 max-h-80 overflow-y-auto pr-1 no-scrollbar" id="assignedBoard"></div>
-    </section>
+  <div class="zone-list" id="zoneList"></div>
+</div>
 
-  </main>
+<script>
+// 기본 등록 구역 마스터 데이터 (131개 구역)
+const defaultZones = [
+  { no: "1", name: "동일가스 충전소", road: "청수로 1", address: "청수로 1 (SK행복충전 동일가스 충전소)" },
+  { no: "2", name: "황금네거리 일대", road: "청수로 25", address: "청수로 25" },
+  { no: "3", name: "황금지구대", road: "청수로 40", address: "청수로 40" },
+  { no: "4-1", name: "황금주공상가(1)", road: "청수로45길 10", address: "청수로45길 10" },
+  { no: "4-2", name: "황금주공상가(2)", road: "청수로45길 12", address: "청수로45길 12" },
+  { no: "4-3", name: "황금주공상가(3)", road: "청수로45길 14", address: "청수로45길 14" },
+  { no: "4-4", name: "황금주공상가(4)", road: "청수로45길 16", address: "청수로45길 16" },
+  { no: "4-5", name: "황금주공상가(5)", road: "청수로45길 18", address: "청수로45길 18" },
+  { no: "5", name: "황금중학교", road: "청수로 60", address: "청수로 60" },
+  { no: "6", name: "어린이회관 일대", road: "동대구로 170", address: "동대구로 170" },
+  { no: "7", name: "희망로삼거리", road: "희망로 150", address: "희망로 150" },
+  { no: "8", name: "중동교 인근", road: "수성로 120", address: "수성로 120" },
+  { no: "9", name: "수성구보건소", road: "수성로 135", address: "수성로 135" },
+  { no: "10", name: "중동시장", road: "수성로 150", address: "수성로 150" },
+  { no: "11", name: "황금1동주민센터", road: "들안로 100", address: "들안로 100" },
+  { no: "12", name: "수성아트피아", road: "무학로 180", address: "무학로 180" },
+  { no: "13", name: "지산리더스", road: "지범로 50", address: "지범로 50" },
+  { no: "14", name: "두산오거리", road: "동대구로 50", address: "동대구로 50" },
+  { no: "15", name: "수성못역", road: "동대구로 20", address: "동대구로 20" },
+  { no: "16-1", name: "그랜뷰입구", road: "수성로38길 50", address: "수성로38길 50" },
+  { no: "16-2", name: "그랜뷰(1)", road: "수성로38길 58", address: "수성로38길 58 (그랜뷰본동)" },
+  { no: "16-3", name: "그랜뷰(2)", road: "수성로38길 58-6", address: "수성로38길 58-6 (그랜뷰6동)" },
+  { no: "17", name: "상록수어린이공원", road: "들안로29길 34", address: "들안로29길 34 (뷰티인선)" },
+  { no: "18", name: "쉐보레 바로서비스", road: "들안로33길 14", address: "들안로33길 14 (엠파이어 빌라트 셀프24시 빨래방)" },
+  { no: "19", name: "효성병원", road: "수성로 194", address: "수성로 194 (효성병원)" },
+  { no: "20", name: "중동잔치국수", road: "수성로38길 34-11", address: "수성로38길 34-11 (중동국수)" },
+  { no: "21", name: "다래식당", road: "수성로38길 20", address: "수성로38길 20 (다래식당)" },
+  { no: "22", name: "송원식당", road: "청수로9길 34", address: "청수로9길 34 (송원식당)" },
+  { no: "23", name: "수성센트럴화성파크드림", road: "수성로 192", address: "수성로 192 (기프트버거)" },
+  { no: "24", name: "스타벅스 중동네거리점", road: "청수로 51", address: "청수로 51 (스타벅스 중동네거리점)" },
+  { no: "25", name: "맨션5", road: "들안로25길 10-23", address: "들안로25길 10-23 (애플빌라)" },
+  { no: "26", name: "네비게이션AS센터", road: "들안로 186", address: "들안로 186 (네비게이션 AS센터)" },
+  { no: "27", name: "경일약품", road: "들안로 142", address: "들안로 142 (경일빌딩 경일약품)" },
+  { no: "28", name: "진영마트", road: "들안로28길 12", address: "들안로28길 12 (진영마트)" },
+  { no: "29", name: "안영희미용실", road: "청수로 83", address: "청수로 83 (안영희미용실)" },
+  { no: "30", name: "조은마트", road: "희망로 200", address: "희망로 200 (조은마트)" },
+  { no: "31", name: "황금어린이공원", road: "희망로36길 32", address: "희망로36길 32 (황금2동경로당)" },
+  { no: "32", name: "해맑은어린이집", road: "들안로32길 17", address: "들안로32길 17 (해맑은어린이집)" },
+  { no: "33", name: "아름빌플러스", road: "청수로25길 66-17", address: "청수로25길 66-17 (대영광고)" },
+  { no: "34", name: "대경놀이터", road: "청수로25길 90", address: "청수로25길 90 (대경어린이공원)" },
+  { no: "35", name: "투썸 황금점", road: "청수로25길 83", address: "청수로25길 83 (골든파크빌)" },
+  { no: "36", name: "안동국시", road: "희망로 216", address: "희망로 216 (안동국시)" },
+  { no: "37", name: "살롱드B", road: "들안로32길 73", address: "들안로32길 73 (나폴리 살롱드B)" },
+  { no: "38", name: "이마트24", road: "들안로28길 24-43", address: "들안로28길 24-43 (윤슬커피)" },
+  { no: "39", name: "델타석유", road: "동대구로29길 54-41", address: "동대구로29길 54-41 (델타석유(수산석유))" },
+  { no: "40", name: "황금천주교회", road: "청수로 109-5", address: "청수로 109-5 (황금성당)" },
+  { no: "41", name: "예당피부관리", road: "희망로36길 106", address: "희망로36길 106 (예당피부관리)" },
+  { no: "42", name: "머리이야기", road: "들안로32길 77", address: "들안로32길 77 (머리이야기)" },
+  { no: "43", name: "아름빌", road: "들안로32길 78", address: "들안로32길 78 (아름빌)" },
+  { no: "44", name: "황금인테리어", road: "들안로32길 96", address: "들안로32길 96 (쿠로리페어샵)" },
+  { no: "45", name: "곰막창", road: "동대구로29길 54-35", address: "동대구로29길 54-35 (막창)" },
+  { no: "46", name: "코리아나모텔", road: "동대구로25길 34", address: "동대구로25길 34 (코리아나모텔)" },
+  { no: "47", name: "KFC", road: "동대구로 155", address: "동대구로 155 (KFC)" },
+  { no: "48", name: "대구은행 황금네거리", road: "동대구로 111", address: "동대구로 111 (대구은행)" },
+  { no: "49", name: "어린이세상", road: "동대구로 132", address: "동대구로 132 (BMW 매장)" },
+  { no: "50", name: "삼성스토어", road: "동대구로 110", address: "동대구로 110 (삼성스토어)" },
+  { no: "51", name: "수성케이블", road: "청수로31길 2-7", address: "청수로31길 2-7 (주택벨 좌)" },
+  { no: "52", name: "캐슬5단지", road: "청수로 214", address: "청수로 214 (캐슬5단지상가 1층 CU)" },
+  { no: "53", name: "3주공 앞 상가,1단지 상가", road: "청수로45길 163-14", address: "청수로45길 163-14 (1층 야채가게)" },
+  { no: "54", name: "3주공 - 306동", road: "청수로45길 41", address: "청수로45길 41 (306동)" },
+  { no: "55", name: "3주공 - 305동", road: "청수로45길 41", address: "청수로45길 41 (305동)" },
+  { no: "56", name: "3주공 - 304동", road: "청수로45길 41", address: "청수로45길 41 (304동 101)" },
+  { no: "57", name: "3주공 - 303동", road: "청수로45길 41", address: "청수로45길 41 (303동 101)" },
+  { no: "58", name: "3주공 - 302동", road: "청수로45길 41", address: "청수로45길 41 (302동 103)" },
+  { no: "59", name: "3주공 - 301동", road: "청수로45길 41", address: "청수로45길 41 (301동 101)" },
+  { no: "60", name: "캐슬골드파크 상가", road: "청수로45길 32", address: "청수로45길 32 (1층 카페 봄봄)" },
+  { no: "61", name: "캐슬골드파크 뒷시장", road: "청수로45길 48", address: "청수로45길 48 (동의약초건강원)" },
+  { no: "62", name: "캐슬4단지,박물관", road: "청호로 321", address: "청호로 321 (박물관 로비)" },
+  { no: "63", name: "황금힐스테이트", road: "청수로 256-3", address: "청수로 256-3 (힐스테이트상가2 1층 현대탑부동산)" },
+  { no: "64", name: "우방신천지타운,하이츠", road: "청호로46길 16", address: "청호로46길 16 (1층 호랭마늘통닭)" },
+  { no: "65", name: "경북고,우방타운2차", road: "청호로 286", address: "청호로 286 (대구황금유치원)" },
+  { no: "66-1", name: "목련아파트(1)", road: "청호로 350", address: "청호로 350 (동도중학교)" },
+  { no: "66-2", name: "목련아파트(2)", road: "청호로 340", address: "청호로 340 (목련A 3동(1) 101)" },
+  { no: "67", name: "선스포츠프라자", road: "범어로 9", address: "범어로 9 (선스포츠프라자 건물)" },
+  { no: "68", name: "명문빌라", road: "범어로 22", address: "범어로 22 (대건과일)" },
+  { no: "69", name: "화산샬렛아파트", road: "달구벌대로504길 40", address: "달구벌대로504길 40 (경신탁구클럽)" },
+  { no: "70", name: "경신중고등학교", road: "달구벌대로504길 30", address: "달구벌대로504길 30 (1층)" },
+  { no: "71", name: "범어힐스테이트", road: "범어로18길 22", address: "범어로18길 22 (힐스테이트상가)" },
+  { no: "72", name: "헤어두툼", road: "범어로 88", address: "범어로 88 (한촌설렁탕)" },
+  { no: "73", name: "안심약국", road: "달구벌대로 2506", address: "달구벌대로 2506 (LG유플러스)" },
+  { no: "74", name: "지성학원 범어점", road: "달구벌대로 2520", address: "달구벌대로 2520 (1층 T월드)" },
+  { no: "75", name: "남부DC마트", road: "범어로20길 78", address: "범어로20길 78 (대문벨 좌)" },
+  { no: "76", name: "경북아파트", road: "달구벌대로504길 37", address: "달구벌대로504길 37 (경북B 상가 아파트 관리실)" },
+  { no: "77", name: "금봉빌라", road: "청호로85길 30", address: "청호로85길 30 (다인빌 ODD디자인)" },
+  { no: "78", name: "가든주유소", road: "청호로85길 9", address: "청호로85길 9 (1층 히스카페)" },
+  { no: "79", name: "빌리브범어", road: "청호로 418", address: "청호로 418 (빌리브범어 상가 엄지공인중개사)" },
+  { no: "80", name: "장원맨션", road: "청호로 370", address: "청호로 370 (1층 상가 최선부동산)" },
+  { no: "81", name: "우방청솔맨션", road: "청호로84길 24", address: "청호로84길 24 (서광빌딩)" },
+  { no: "82", name: "범어삼성쉐르빌", road: "청호로 426", address: "청호로 426 (쉐르빌상가 쉐르빌 경비실)" },
+  { no: "83", name: "범어효성해링턴플레이스", road: "청호로 433", address: "청호로 433 (해링턴상가 해링턴플레이스 경비실)" },
+  { no: "84", name: "신통외국어학원", road: "청호로85안길 36", address: "청호로85안길 36 (엘도라도)" },
+  { no: "85", name: "하이카프라자", road: "청호로 453", address: "청호로 453 (하이카프라자)" },
+  { no: "86", name: "빌리브범어120", road: "달구벌대로512길 10", address: "달구벌대로512길 10 (101호)" },
+  { no: "87", name: "남부상가시장", road: "달구벌대로512길 8", address: "달구벌대로512길 8 (1층 빈 상가)" },
+  { no: "88", name: "아크로타워", road: "달구벌대로 2570", address: "달구벌대로 2570 (아크로타워1층 늘숲심리상담)" },
+  { no: "89", name: "아크로타워부동산", road: "청호로95길 9", address: "청호로95길 9 (아크로타워부동산)" },
+  { no: "90", name: "범어라온프라이빗", road: "청호로88길 9", address: "청호로88길 9 (라온프라이빗2차 상가)" },
+  { no: "91", name: "그린힐골프연습장", road: "청호로88길 24", address: "청호로88길 24" },
+  { no: "92", name: "덕일어린이집", road: "청호로92길 26", address: "청호로92길 26 (덕일어린이집)" },
+  { no: "93", name: "꼬 치킨", road: "청호로92길 14", address: "청호로92길 14 (꼬 치킨)" },
+  { no: "94", name: "범양맨션", road: "청호로92길 35", address: "청호로92길 35 (힐튼빌라 경비실)" },
+  { no: "95", name: "범어브릿지부동산", road: "청호로94길 31", address: "청호로94길 31" },
+  { no: "96", name: "롯데리아", road: "청호로 498", address: "청호로 498 (메가커피)" },
+  { no: "97", name: "동진아파트", road: "청호로96길 12", address: "청호로96길 12 (동진아파트 상가)" },
+  { no: "98", name: "참기름", road: "청호로96안길 1", address: "청호로96안길 1 (참기름 자연농산)" },
+  { no: "99", name: "만촌교회", road: "청호로94길 30", address: "청호로94길 30 (만촌교회)" },
+  { no: "100", name: "오성중고교", road: "청호로96안길 60-17", address: "청호로96안길 60-17" },
+  { no: "101", name: "성광타운", road: "달구벌대로522길 77", address: "달구벌대로522길 77 (성광타운 101)" },
+  { no: "102", name: "오성골프 앞 주택", road: "달구벌대로522길 121-10", address: "달구벌대로522길 121-10 (좌)" },
+  { no: "103", name: "오성골프연습장", road: "달구벌대로522길 134", address: "달구벌대로522길 134 (오성골프 3층-손님 골프)" },
+  { no: "104", name: "버거킹 대구만촌점", road: "달구벌대로 2612", address: "달구벌대로 2612 (마들렌 만촌네거리점)" },
+  { no: "105", name: "수성대학교", road: "달구벌대로 2626", address: "달구벌대로 2626 (SK주유소-사무실)" },
+  { no: "106", name: "만촌3동주민센터", road: "달구벌대로 2652", address: "달구벌대로 2652 (1층)" },
+  { no: "107", name: "만촌119안전센터", road: "달구벌대로 2668", address: "달구벌대로 2668 (지하 조계종대성사)" },
+  { no: "108", name: "만촌시장", road: "교학로2길 5", address: "교학로2길 5 (샌드위치집)" },
+  { no: "109", name: "성좌아파트", road: "달구벌대로530길 46", address: "달구벌대로530길 46 (성좌아파트 관리실)" },
+  { no: "110", name: "소선여중", road: "교학로8길 37", address: "교학로8길 37 (소선여중)" },
+  { no: "111", name: "대청초등학교", road: "교학로12길 10", address: "교학로12길 10" },
+  { no: "112", name: "혜화여고", road: "교학로12길 41", address: "교학로12길 41" },
+  { no: "113", name: "만촌3동경로당", road: "교학로 54", address: "교학로 54" },
+  { no: "114", name: "만촌자이르네", road: "교학로19길 19", address: "교학로19길 19 (만촌자이르네)" },
+  { no: "115", name: "산장맨션", road: "교학로 111", address: "교학로 111" },
+  { no: "116", name: "만촌삼정그린코아", road: "교학로 65", address: "교학로 65 (삼정그린상가)" },
+  { no: "117(X)", name: "뉴대구어린이집(재개발)", road: "", address: "재개발 - 이주 완료", isDev: true },
+  { no: "118(X)", name: "새마을금고(재개발)", road: "", address: "재개발 - 이주 완료", isDev: true },
+  { no: "119", name: "만촌화성파크드림3차", road: "교학로 13", address: "교학로 13 (화성3차상가)" },
+  { no: "120", name: "대륜중고,우방팔레스", road: "달구벌대로 2692", address: "달구벌대로 2692 (파크드림2차)" },
+  { no: "121(X)", name: "페도라안경(재개발)", road: "교학로11길 41", address: "교학로11길 41 (재개발)", isDev: true },
+  { no: "122(X)", name: "한도아파트(재개발)", road: "교학로11길 43", address: "교학로11길 43 (한도A 가 재개발)", isDev: true },
+  { no: "123", name: "만촌우방2차", road: "교학로11길 73", address: "교학로11길 73 (만촌신시장)" },
+  { no: "124", name: "만촌우방1차", road: "교학로11길 46", address: "교학로11길 46 (만촌우방1차)" }
+];
 
-  <script>
-    const allVolunteers = [
-      { id: 1, name: "이은평", phone: "010-9918-2179" }, { id: 2, name: "서현우", phone: "010-4066-1935" },
-      { id: 3, name: "구은희", phone: "010-3902-1935" }, { id: 4, name: "김지훈", phone: "010-2764-1914" },
-      { id: 5, name: "하서진", phone: "010-5521-7984" }, { id: 6, name: "이지후", phone: "010-4677-8226" },
-      { id: 7, name: "정수빈", phone: "010-9556-9984" }, { id: 8, name: "김명분", phone: "010-3758-9377" },
-      { id: 9, name: "김옥란", phone: "010-5067-4241" }, { id: 10, name: "서애주", phone: "010-2738-2755" },
-      { id: 11, name: "나승범", phone: "010-2835-0979" }, { id: 12, name: "류한상", phone: "010-2911-9037" },
-      { id: 13, name: "박칠만", phone: "010-5551-8994" }, { id: 14, name: "유동석", phone: "010-7194-6946" },
-      { id: 15, name: "이일천", phone: "010-7245-0729" }, { id: 16, name: "임원진", phone: "010-9870-0410" },
-      { id: 17, name: "김영심", phone: "010-8283-9410" }, { id: 18, name: "임다솜", phone: "010-9805-9410" },
-      { id: 19, name: "임유빈", phone: "010-4677-9410" }, { id: 20, name: "김창홍", phone: "010-3322-7440" },
-      { id: 21, name: "김정희", phone: "010-3827-7440" }, { id: 22, name: "김종학", phone: "010-3543-9721" },
-      { id: 23, name: "정영희", phone: "010-3650-9721" }, { id: 24, name: "김수정", phone: "010-7736-6177" },
-      { id: 25, name: "김경민", phone: "010-9802-1935" }, { id: 26, name: "김창수", phone: "010-2540-8569" },
-      { id: 27, name: "류진실", phone: "010-9329-3378" }, { id: 28, name: "박성준", phone: "010-2644-8214" },
-      { id: 29, name: "소병진", phone: "010-4814-9623" }, { id: 30, name: "신솔이", phone: "010-3886-1914" },
-      { id: 31, name: "전동욱", phone: "010-3224-1083" }, { id: 32, name: "장민기", phone: "010-2909-1458" },
-      { id: 33, name: "방민지", phone: "010-2830-9352" }, { id: 34, name: "남창식", phone: "010-3813-1914" },
-      { id: 35, name: "권윤희", phone: "010-2157-1975" }, { id: 36, name: "권숙이", phone: "010-8886-8662" },
-      { id: 37, name: "권정혜", phone: "010-5628-1914" }, { id: 38, name: "김규현", phone: "010-8698-3321" },
-      { id: 39, name: "유금년", phone: "010-9767-6950" }, { id: 40, name: "이선혜", phone: "010-2289-3190" },
-      { id: 41, name: "이지윤", phone: "010-6290-2539" }, { id: 42, name: "정수만", phone: "010-3852-2042" },
-      { id: 43, name: "이선애", phone: "010-4564-2884" }, { id: 44, name: "정희도", phone: "010-2560-0004" },
-      { id: 45, name: "황민우", phone: "010-4878-7948" }, { id: 46, name: "정직한", phone: "010-2122-2990" },
-      { id: 47, name: "이슬", phone: "010-2642-3450" }, { id: 48, name: "이영길", phone: "010-2503-9886" },
-      { id: 49, name: "박노순", phone: "010-2699-9886" }, { id: 50, name: "김대호", phone: "010-4972-2487" },
-      { id: 51, name: "손귀숙", phone: "010-9408-5054" }, { id: 52, name: "김은혜", phone: "010-7152-0780" },
-      { id: 53, name: "김서영", phone: "010-4858-2487" }, { id: 54, name: "김상연", phone: "010-2992-1914" },
-      { id: 55, name: "김예지", phone: "010-4321-2728" }, { id: 56, name: "오영숙", phone: "010-7360-4005" },
-      { id: 57, name: "이정희", phone: "010-8010-4595" }, { id: 58, name: "이태걸", phone: "010-2438-4595" },
-      { id: 59, name: "정성훈", phone: "010-2693-0183" }, { id: 60, name: "조일성", phone: "010-2602-1868" },
-      { id: 61, name: "주근자", phone: "010-7326-2591" }, { id: 62, name: "권보호", phone: "010-8520-4722" },
-      { id: 63, name: "한미희", phone: "010-8640-0311" }, { id: 64, name: "전광훈", phone: "010-6303-1914" },
-      { id: 65, name: "조소라", phone: "010-2809-1868" }, { id: 66, name: "최화평", phone: "010-8315-8901" },
-      { id: 67, name: "황중현", phone: "010-6667-1914" }, { id: 68, name: "한지윤", phone: "010-6587-7806" },
-      { id: 69, name: "김경애", phone: "010-9386-1154" }, { id: 70, name: "김동일", phone: "010-3811-4434" },
-      { id: 71, name: "김성희", phone: "010-8121-4434" }, { id: 72, name: "김지호", phone: "010-5485-5249" },
-      { id: 73, name: "류상화", phone: "010-9815-2490" }, { id: 74, name: "양순남", phone: "010-6472-1721" },
-      { id: 75, name: "장옥희", phone: "010-4242-7055" }, { id: 76, name: "정송식", phone: "010-3523-2340" },
-      { id: 77, name: "조명희", phone: "010-5508-2497" }
-    ];
+// 로컬 스토리지 초기화 및 불러오기
+let zones = JSON.parse(localStorage.getItem('zone_list')) || defaultZones;
+let volunteers = JSON.parse(localStorage.getItem('volunteer_list')) || [
+  { name: "김봉사", phone: "010-1234-5678" },
+  { name: "이열심", phone: "010-9876-5432" }
+];
+let assignments = JSON.parse(localStorage.getItem('zone_assignments')) || {};
 
-    const rawZones = [
-      ["1", "동일가스 충전소"], ["2", "중동시장"], ["3", "수성골드클래스"],
-      ["4-1", "서울중동아파트 1동"], ["4-2", "서울중동아파트 2동"], ["4-3", "서울중동아파트 3동"],
-      ["4-4", "서울중동아파트 4동"], ["4-5", "서울중동아파트 5동"], ["5", "수성뷰웰리버파크"],
-      ["6", "중동새마을금고"], ["7", "백궁회초밥"], ["8", "신우유통 중동1호점"],
-      ["9", "수성구보건소"], ["10", "수성효성해링턴플레이스"], ["11", "롯데슈퍼 수성점"],
-      ["12", "맥도날드 희망DT점"], ["13", "아우디"], ["14", "제니스 카매니아"],
-      ["15", "GS25 중동베스트점"], ["16-1", "그랜뷰 앞 주택"], ["16-2", "그랜뷰(1)"],
-      ["16-3", "그랜뷰(2)"], ["17", "상록수어린이공원"], ["18", "쉐보레 바로서비스"],
-      ["19", "효성병원"], ["20", "중동잔치국수"], ["21", "다래식당"],
-      ["22", "송원식당"], ["23", "수성센트럴화성파크드림"], ["24", "스타벅스 중동네거리점"],
-      ["25", "맨션5"], ["26", "네비게이션AS센터"], ["27", "경일약품"],
-      ["28", "진영마트"], ["29", "안영희미용실"], ["30", "조은마트"],
-      ["31", "황금어린이공원"], ["32", "해맑은어린이집"], ["33", "아름빌플러스"],
-      ["34", "대경놀이터"], ["35", "투썸 황금점"], ["36", "안동국시"],
-      ["37", "살롱드B"], ["38", "이마트24"], ["39", "델타석유"],
-      ["40", "황금천주교회"], ["41", "예당피부관리"], ["42", "머리이야기"],
-      ["43", "아름빌"], ["44", "황금인테리어"], ["45", "곰막창"],
-      ["46", "코리아나모텔"], ["47", "KFC"], ["48", "대구은행 황금네거리"],
-      ["49", "어린이세상"], ["50", "삼성스토어"], ["51", "수성케이블"],
-      ["52", "캐슬5단지"], ["53", "3주공 앞 상가/1단지 상가"], ["54", "3주공 - 306동"],
-      ["55", "3주공 - 305동"], ["56", "3주공 - 304동"], ["57", "3주공 - 303동"],
-      ["58", "3주공 - 302동"], ["59", "3주공 - 301동"], ["60", "캐슬골드파크 상가"],
-      ["61", "캐슬골드파크 뒷시장"], ["62", "캐슬4단지/박물관"], ["63", "황금힐스테이트"],
-      ["64", "우방신천지타운/하이츠"], ["65", "경북고/우방타운2차"], ["66-1", "목련아파트(1)"],
-      ["66-2", "목련아파트(2)"], ["67", "선스포츠프라자"], ["68", "명문빌라"],
-      ["69", "화산샬렛아파트"], ["70", "경신중고등학교"], ["71", "범어힐스테이트"],
-      ["72", "헤어두툼"], ["73", "안심약국"], ["74", "지성학원 범어점"],
-      ["75", "남부DC마트"], ["76", "경북아파트"], ["77", "금봉빌라"],
-      ["78", "가든주유소"], ["79", "빌리브범어"], ["80", "장원맨션"],
-      ["81", "우방청솔맨션"], ["82", "범어삼성쉐르빌"], ["83", "범어효성해링턴플레이스"],
-      ["84", "신통외국어학원"], ["85", "하이카프라자"], ["86", "빌리브범어120"],
-      ["87", "남부상가시장"], ["88", "아크로타워"], ["89", "아크로타워부동산"],
-      ["90", "범어라온프라이빗"], ["91", "그린힐골프연습장"], ["92", "덕일어린이집"],
-      ["93", "꼬 치킨"], ["94", "범양맨션"], ["95", "범어브릿지부동산"],
-      ["96", "롯데리아"], ["97", "동진아파트"], ["98", "참기름"],
-      ["99", "만촌교회"], ["100", "오성중고교"], ["101", "성광타운"],
-      ["102", "오성골프 앞 주택"], ["103", "오성골프연습장"], ["104", "버거킹 대구만촌점"],
-      ["105", "수성대학교"], ["106", "만촌3동주민센터"], ["107", "만촌119안전센터"],
-      ["108", "만촌시장"], ["109", "성좌아파트"], ["110", "소선여중"],
-      ["111", "대청초등학교"], ["112", "혜화여고"], ["113", "만촌3동경로당"],
-      ["114", "만촌자이르네"], ["115", "산장맨션"], ["116", "만촌삼정그린코아"],
-      ["117(X)", "뉴대구어린이집(재개발)"], ["118(X)", "새마을금고(재개발)"], ["119", "만촌화성파크드림3차"],
-      ["120", "대륜중고/우방팔레스"], ["121(X)", "페도라안경(재개발)"], ["122(X)", "한도아파트(재개발)"],
-      ["123", "만촌우방2차"], ["124", "만촌우방1차"]
-    ];
+// 문자 메시지 본문 생성 함수
+function generateSmsUrl(phone, zone) {
+  const mapSearchTarget = zone.road ? zone.road : zone.address;
+  const naverMapUrl = `https://m.map.naver.com/search2/search.naver?query=${encodeURIComponent(mapSearchTarget)}`;
+  
+  const text = `[봉사 구역 배정 안내]
+안녕하세요! 오늘 배정된 봉사 구역 안내드립니다.
 
-    let zones = rawZones.map((item, idx) => ({ 
-      id: idx + 1, 
-      no: item[0], 
-      name: item[1],
-      assignedVols: []
-    }));
+* 배정 구역: ${zone.no}호 - ${zone.name}
+* 현장 주소: ${zone.address}
+* 네이버지도 길안내: ${naverMapUrl}
 
-    let attendedIds = new Set(JSON.parse(localStorage.getItem('v6_attended_ids')) || []);
-    let selectedVolIds = new Set();
+오늘도 즐거운 봉사 되세요~`;
 
-    const savedAssignments = JSON.parse(localStorage.getItem('v6_zone_assignments')) || {};
-    zones.forEach(z => {
-      if (savedAssignments[z.id]) {
-        z.assignedVols = savedAssignments[z.id];
-      }
+  // 모바일 환경 SMS URI 생성 (iOS/Android 호환)
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const delimiter = isIOS ? '&' : '?';
+  return `sms:${phone}${delimiter}body=${encodeURIComponent(text)}`;
+}
+
+function render() {
+  const container = document.getElementById('zoneList');
+  const search = document.getElementById('searchInput').value.trim().toLowerCase();
+  container.innerHTML = '';
+
+  let assigned = 0;
+
+  zones.forEach(zone => {
+    if (assignments[zone.no]) assigned++;
+
+    const matches = zone.no.toLowerCase().includes(search) || zone.name.toLowerCase().includes(search);
+    if (!matches) return;
+
+    const card = document.createElement('div');
+    card.className = `zone-card ${zone.isDev ? 'dev-zone' : ''}`;
+
+    const currentAssigned = assignments[zone.no] || '';
+    const assignedVol = volunteers.find(v => v.name === currentAssigned);
+
+    let options = `<option value="">-- 봉사자 배정 선택 --</option>`;
+    volunteers.forEach(v => {
+      options += `<option value="${v.name}" ${currentAssigned === v.name ? 'selected' : ''}>${v.name} (${v.phone})</option>`;
     });
 
-    let selectedZone = zones[0];
-    let filteredPool = [...allVolunteers];
-    let filteredZones = [...zones];
+    const smsUrl = (assignedVol && !zone.isDev) ? generateSmsUrl(assignedVol.phone, zone) : '#';
 
-    // 현재 특정 구역에 배정되어 있는 봉사자 Map 조회 (volId => 구역 번호)
-    function getAssignedVolunteerMap() {
-      const map = new Map();
-      zones.forEach(z => {
-        z.assignedVols.forEach(v => {
-          map.set(v.id, z.no);
-        });
-      });
-      return map;
-    }
-
-    function init() {
-      document.getElementById('totalPoolCount').innerText = allVolunteers.length;
-      document.getElementById('zoneCountDisplay').innerText = zones.length;
-      renderAttendancePool();
-      renderTodayVolGrid();
-      renderZones();
-      renderAssignedBoard();
-    }
-
-    // 1단계 출석 체크 풀
-    function renderAttendancePool() {
-      const container = document.getElementById('attendanceGrid');
-      container.innerHTML = filteredPool.map(v => {
-        const isAttended = attendedIds.has(v.id);
-        return `
-          <button type="button" onclick="toggleAttendance(${v.id})" class="p-2 rounded-xl border text-left text-xs transition flex items-center justify-between ${isAttended ? 'bg-blue-50 border-blue-400 text-blue-900 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}">
-            <span class="truncate">${v.name}</span>
-            ${isAttended ? '<i data-lucide="check" class="w-3.5 h-3.5 text-blue-600"></i>' : '<span class="text-[10px] text-slate-400">출석</span>'}
-          </button>
-        `;
-      }).join('');
-      lucide.createIcons();
-    }
-
-    function toggleAttendance(id) {
-      if (attendedIds.has(id)) {
-        attendedIds.delete(id);
-        selectedVolIds.delete(id);
-      } else {
-        attendedIds.add(id);
-      }
-      localStorage.setItem('v6_attended_ids', JSON.stringify([...attendedIds]));
-      renderAttendancePool();
-      renderTodayVolGrid();
-    }
-
-    function clearTodayAttendance() {
-      if (confirm('오늘 출석 체크를 모두 초기화하시겠습니까?')) {
-        attendedIds.clear();
-        selectedVolIds.clear();
-        localStorage.removeItem('v6_attended_ids');
-        renderAttendancePool();
-        renderTodayVolGrid();
-      }
-    }
-
-    // 2단계: 오늘 참여자 2열 그리드 (이미 배정된 봉사자는 선택 차단 및 회색 잠금)
-    function renderTodayVolGrid() {
-      const container = document.getElementById('todayVolGrid');
-      document.getElementById('todayCountBadge').innerText = `${attendedIds.size}명`;
-
-      const todayList = allVolunteers.filter(v => attendedIds.has(v.id));
-      const assignedMap = getAssignedVolunteerMap();
-
-      if (todayList.length === 0) {
-        container.innerHTML = '<div class="col-span-2 py-4 text-center text-xs text-slate-400 italic">위 1단계에서 오늘 출석한 봉사자를 먼저 체크해 주세요.</div>';
-        document.getElementById('selectedVolCountLabel').innerText = '0명 선택됨';
-        updateAssignBtn();
-        return;
-      }
-
-      container.innerHTML = todayList.map(v => {
-        const isAssigned = assignedMap.has(v.id);
-        const assignedZoneNo = assignedMap.get(v.id);
-        const isChecked = selectedVolIds.has(v.id);
-
-        if (isAssigned) {
-          // 이미 배정된 인원: 비활성화 & 클릭 방지
-          return `
-            <div class="p-2.5 rounded-xl border border-slate-200/80 bg-slate-100 text-slate-400 text-xs flex items-center justify-between opacity-60 cursor-not-allowed select-none">
-              <div class="flex flex-col">
-                <span class="font-medium line-through">${v.name}</span>
-                <span class="text-[10px] text-slate-400 font-mono">${v.phone.slice(-4)}</span>
-              </div>
-              <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 font-bold">${assignedZoneNo}호 배정됨</span>
-            </div>
-          `;
-        }
-
-        // 미배정 대기 인원: 정상 선택 가능
-        return `
-          <button type="button" onclick="toggleSelectVol(${v.id})" class="p-2.5 rounded-xl border text-left text-xs transition flex items-center justify-between ${isChecked ? 'bg-blue-600 text-white border-blue-600 font-bold shadow-sm' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'}">
-            <div class="flex flex-col">
-              <span>${v.name}</span>
-              <span class="text-[10px] ${isChecked ? 'text-blue-200' : 'text-slate-400'} font-mono">${v.phone.slice(-4)}</span>
-            </div>
-            ${isChecked ? '<i data-lucide="check-circle-2" class="w-4 h-4 text-white"></i>' : '<div class="w-4 h-4 rounded-full border border-slate-300 bg-white"></div>'}
-          </button>
-        `;
-      }).join('');
-
-      document.getElementById('selectedVolCountLabel').innerText = `${selectedVolIds.size}명 선택됨`;
-      updateAssignBtn();
-      lucide.createIcons();
-    }
-
-    function toggleSelectVol(id) {
-      const assignedMap = getAssignedVolunteerMap();
-      if (assignedMap.has(id)) return; // 이미 배정된 사람은 선택 불가
-
-      if (selectedVolIds.has(id)) {
-        selectedVolIds.delete(id);
-      } else {
-        selectedVolIds.add(id);
-      }
-      renderTodayVolGrid();
-    }
-
-    function selectAllAvailableTodayVols() {
-      const assignedMap = getAssignedVolunteerMap();
-      allVolunteers
-        .filter(v => attendedIds.has(v.id) && !assignedMap.has(v.id))
-        .forEach(v => selectedVolIds.add(v.id));
-      renderTodayVolGrid();
-    }
-
-    function clearSelectedVols() {
-      selectedVolIds.clear();
-      renderTodayVolGrid();
-    }
-
-    function updateAssignBtn() {
-      const count = selectedVolIds.size;
-      const btnText = document.getElementById('assignBtnText');
-      if (count === 0) {
-        btnText.innerText = '배정할 인원을 선택해 주세요';
-      } else {
-        btnText.innerText = `선택한 ${count}명 배정 확정하기`;
-      }
-    }
-
-    // 3단계: 구역 리스트
-    function renderZones() {
-      const container = document.getElementById('zoneList');
-      container.innerHTML = filteredZones.map(z => {
-        const isSel = z.id === selectedZone.id;
-        const count = z.assignedVols.length;
-        return `
-          <button type="button" onclick="selectZone(${z.id})" class="w-full p-2.5 rounded-xl border text-left transition flex items-center justify-between text-xs ${isSel ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-slate-50 text-slate-700 border-slate-200'}">
-            <div class="flex items-center gap-2 overflow-hidden">
-              <span class="px-2 py-0.5 rounded font-mono font-bold shrink-0 ${isSel ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-800'}">${z.no}호</span>
-              <span class="truncate font-medium">${z.name}</span>
-            </div>
-            <div class="flex items-center gap-1.5 shrink-0">
-              ${count > 0 ? `<span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold font-mono">${count}명 배정</span>` : ''}
-              ${isSel ? '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>' : ''}
-            </div>
-          </button>
-        `;
-      }).join('');
-      lucide.createIcons();
-    }
-
-    function selectZone(id) {
-      selectedZone = zones.find(z => z.id === id);
-      document.getElementById('selectedZoneLabel').innerText = `${selectedZone.no}호 선택됨`;
-      renderZones();
-    }
-
-    // 다중 배정 확정 (배정 즉시 2단계 목록에서 잠김 처리)
-    function confirmMultipleAssignment() {
-      if (selectedVolIds.size === 0) {
-        alert('오늘 참여자 중 배정할 봉사자를 1명 이상 선택해 주세요.');
-        return;
-      }
-
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      let addedNames = [];
-
-      selectedVolIds.forEach(volId => {
-        const vol = allVolunteers.find(v => v.id === volId);
-        selectedZone.assignedVols.push({
-          id: vol.id,
-          name: vol.name,
-          phone: vol.phone,
-          time: timeStr
-        });
-        addedNames.push(vol.name);
-      });
-
-      saveAssignments();
-      selectedVolIds.clear(); // 선택 셋 비우기
-
-      renderTodayVolGrid();   // 2단계 잠금 상태 재계산 렌더링
-      renderZones();
-      renderAssignedBoard();
-
-      alert(`[배정 완료]\n${selectedZone.no}호 (${selectedZone.name})\n👉 ${addedNames.join(', ')} (${addedNames.length}명) 등록 완료!\n* 배정된 참여자는 대기자 목록에서 자동 잠금됩니다.`);
-    }
-
-    // 4단계 현황판 렌더링
-    function renderAssignedBoard() {
-      const container = document.getElementById('assignedBoard');
-      const activeZones = zones.filter(z => z.assignedVols.length > 0);
-      
-      const totalAssignedPeople = zones.reduce((acc, z) => acc + z.assignedVols.length, 0);
-      document.getElementById('assignedCountBadge').innerText = `${totalAssignedPeople}명`;
-      document.getElementById('assignedBoardCount').innerText = `${totalAssignedPeople}`;
-
-      if (activeZones.length === 0) {
-        container.innerHTML = `
-          <div class="py-8 text-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl">
-            아직 배정된 인원이 없습니다.<br>위에서 참여자(들)와 구역을 선택하고 [배정 확정하기]를 누르세요.
-          </div>
-        `;
-        return;
-      }
-
-      container.innerHTML = activeZones.map(z => `
-        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-          <div class="flex items-center justify-between border-b border-slate-200/80 pb-2">
-            <div class="flex items-center gap-2">
-              <span class="px-2 py-0.5 bg-slate-900 text-white font-mono font-bold rounded-md text-[11px]">${z.no}호</span>
-              <span class="text-xs font-bold text-slate-800">${z.name}</span>
-            </div>
-            <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">${z.assignedVols.length}명 배정</span>
-          </div>
-
-          <div class="space-y-1.5 pt-0.5">
-            ${z.assignedVols.map(v => `
-              <div class="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-100 text-xs">
-                <div class="flex items-center gap-1.5">
-                  <span class="font-bold text-slate-800">${v.name}</span>
-                  <span class="text-slate-400 text-[10px] font-mono">(${v.phone.slice(-4)})</span>
-                </div>
-                <div class="flex items-center gap-1">
-                  <button onclick="sendIndividualSMS('${v.name}', '${v.phone}', '${z.no}', '${z.name}')" class="px-2 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-[10px] font-bold border border-emerald-200 flex items-center gap-1 transition">
-                    <i data-lucide="message-square" class="w-3 h-3"></i>
-                    <span>문자</span>
-                  </button>
-                  <button onclick="removeVolunteerFromZone(${z.id}, ${v.id})" class="px-2 py-1 text-slate-400 hover:text-rose-500 rounded-lg text-[10px] transition">
-                    삭제
-                  </button>
-                </div>
-              </div>
-            `).join('')}
-          </div>
+    card.innerHTML = `
+      <div class="zone-header">
+        <div class="zone-title">
+          ${zone.no}호 - ${zone.name}
+          ${zone.isDev ? '<span class="badge">재개발 구역</span>' : ''}
         </div>
-      `).join('');
+      </div>
+      <div class="zone-address">📍 ${zone.address}</div>
+      ${!zone.isDev ? `
+        <div class="assign-section">
+          <select onchange="assignVolunteer('${zone.no}', this.value)">
+            ${options}
+          </select>
+          <a href="${smsUrl}" class="btn btn-sms" ${!assignedVol ? 'style="display:none;"' : ''} target="_blank">
+            💬 문자 발송
+          </a>
+        </div>
+      ` : '<div style="font-size:0.8rem; color:#ef4444; font-weight:600;">※ 재개발 지역으로 배정에서 제외됩니다.</div>'}
+    `;
+    container.appendChild(card);
+  });
 
-      lucide.createIcons();
-    }
+  document.getElementById('totalZones').innerText = zones.length;
+  document.getElementById('assignedCount').innerText = assigned;
+  document.getElementById('remainCount').innerText = zones.length - assigned;
+}
 
-    function sendIndividualSMS(volName, phone, zoneNo, zoneName) {
-      const cleanPhone = phone.replace(/[^0-9]/g, '');
-      const messageBody = `[봉사 구역 배정 안내]\n\n${volName} 봉사자님, 금일 봉사 구역이 배정되었습니다.\n\n• 구역 번호: ${zoneNo}호\n• 구역 명칭: ${zoneName}\n\n안전 수칙을 준수하여 현장으로 이동해 주시기 바랍니다.`;
+function assignVolunteer(zoneNo, volunteerName) {
+  if (volunteerName) {
+    assignments[zoneNo] = volunteerName;
+  } else {
+    delete assignments[zoneNo];
+  }
+  localStorage.setItem('zone_assignments', JSON.stringify(assignments));
+  render();
+}
 
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      const sep = isIOS ? '&' : '?';
-      window.location.href = `sms:${cleanPhone}${sep}body=${encodeURIComponent(messageBody)}`;
-    }
-
-    // 배정 취소 시 2단계 참여자 목록에 즉시 잠금 해제되어 다시 선택 가능해짐
-    function removeVolunteerFromZone(zoneId, volId) {
-      const z = zones.find(item => item.id === zoneId);
-      z.assignedVols = z.assignedVols.filter(v => v.id !== volId);
-      saveAssignments();
-      renderTodayVolGrid();
-      renderZones();
-      renderAssignedBoard();
-    }
-
-    function resetAllAssignments() {
-      if (confirm('현재 배정된 모든 구역 현황을 초기화하시겠습니까?')) {
-        zones.forEach(z => z.assignedVols = []);
-        saveAssignments();
-        renderTodayVolGrid();
-        renderZones();
-        renderAssignedBoard();
-      }
-    }
-
-    function saveAssignments() {
-      const map = {};
-      zones.forEach(z => {
-        if (z.assignedVols.length > 0) map[z.id] = z.assignedVols;
-      });
-      localStorage.setItem('v6_zone_assignments', JSON.stringify(map));
-    }
-
-    function filterAttendancePool() {
-      const q = document.getElementById('attSearchInput').value.trim().toLowerCase();
-      filteredPool = allVolunteers.filter(v => v.name.toLowerCase().includes(q) || v.phone.replace(/[^0-9]/g, '').includes(q));
-      renderAttendancePool();
-    }
-
-    function filterZones() {
-      const q = document.getElementById('zoneSearchInput').value.trim().toLowerCase();
-      filteredZones = zones.filter(z => z.no.toLowerCase().includes(q) || z.name.toLowerCase().includes(q));
-      renderZones();
-    }
-
-    window.addEventListener('DOMContentLoaded', init);
-  </script>
+document.getElementById('searchInput').addEventListener('input', render);
+render();
+</script>
 </body>
 </html>
