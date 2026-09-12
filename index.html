@@ -70,7 +70,7 @@
       <p class="text-[10px] text-slate-400 text-center">* 이미 배정된 참여자는 회색으로 잠겨 선택할 수 없습니다.</p>
     </section>
 
-    <!-- 3단계: 구역카드 선택 -->
+    <!-- 3단계: 구역카드 선택 (2열 그리드로 확장) -->
     <section class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2.5">
       <div class="flex items-center justify-between">
         <label class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
@@ -85,7 +85,8 @@
         <input type="text" id="zoneSearchInput" oninput="filterZones()" placeholder="구역 번호나 명칭 검색 (예: 36, 안동국시)" class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500">
       </div>
 
-      <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1 no-scrollbar" id="zoneList"></div>
+      <!-- 2열 그리드로 배치하여 한 화면에 더 많이 노출 -->
+      <div class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1 no-scrollbar" id="zoneList"></div>
     </section>
 
     <!-- 배정 확정 버튼 -->
@@ -454,27 +455,29 @@
       }
     }
 
-    // 3단계: 구역 리스트
+    // 3단계: 구역 리스트 (2열 그리드 전용 렌더링)
     function renderZones() {
       const container = document.getElementById('zoneList');
       container.innerHTML = filteredZones.map(z => {
         const isSel = z.id === selectedZone.id;
         const count = z.assignedVols.length;
         return `
-          <button type="button" onclick="selectZone(${z.id})" class="w-full p-2.5 rounded-xl border text-left transition flex items-center justify-between text-xs ${isSel ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-slate-50 text-slate-700 border-slate-200'}">
-            <div class="flex flex-col gap-0.5 overflow-hidden">
-              <div class="flex items-center gap-1.5">
-                <span class="px-2 py-0.5 rounded font-mono font-bold shrink-0 ${isSel ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-800'}">${z.no}호</span>
-                <span class="truncate font-medium">${z.name}</span>
-                ${z.isDev ? '<span class="text-[9px] px-1 rounded bg-rose-100 text-rose-600 font-bold shrink-0">재개발</span>' : ''}
-              </div>
-              <div class="text-[10px] ${isSel ? 'text-slate-300' : 'text-slate-400'} truncate pl-0.5">
-                📍 ${z.address}
+          <button type="button" onclick="selectZone(${z.id})" class="p-2.5 rounded-xl border text-left transition flex flex-col justify-between text-xs min-h-[64px] ${isSel ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-blue-500/20' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'}">
+            <div class="flex items-center justify-between w-full">
+              <span class="px-1.5 py-0.5 rounded font-mono font-bold text-[11px] ${isSel ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-800'}">${z.no}호</span>
+              <div class="flex items-center gap-1">
+                ${count > 0 ? `<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold">${count}명</span>` : ''}
+                ${isSel ? '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>' : ''}
               </div>
             </div>
-            <div class="flex items-center gap-1.5 shrink-0 ml-2">
-              ${count > 0 ? `<span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold font-mono">${count}명 배정</span>` : ''}
-              ${isSel ? '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>' : ''}
+            <div class="mt-1.5">
+              <div class="font-bold truncate text-[11px] flex items-center gap-1">
+                <span>${z.name}</span>
+                ${z.isDev ? '<span class="text-[8px] px-1 rounded bg-rose-100 text-rose-600 font-bold shrink-0">재개발</span>' : ''}
+              </div>
+              <div class="text-[9px] ${isSel ? 'text-slate-300' : 'text-slate-400'} truncate mt-0.5">
+                ${z.address}
+              </div>
             </div>
           </button>
         `;
@@ -576,7 +579,7 @@
       lucide.createIcons();
     }
 
-    // 링크 없는 간결한 안내 문자 발송 함수
+    // 링크 없는 간결한 안내 문자 발송
     function sendIndividualSMS(phone, zoneNo, zoneName, fullAddr) {
       const cleanPhone = phone.replace(/[^0-9]/g, '');
       const messageBody = `[봉사 구역 배정 안내]
