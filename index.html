@@ -33,14 +33,21 @@
 
   <main class="p-4 space-y-4 max-w-md mx-auto">
 
-    <!-- 1단계: 당일 출석 체크 -->
+    <!-- 1단계: 당일 출석 체크 및 봉사자 현장 추가/수정 -->
     <section class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
       <div class="flex items-center justify-between">
         <label class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
           <span class="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] flex items-center justify-center font-bold">1</span>
-          오늘 참여자 체크 (<span id="totalPoolCount">77</span>명 중 선택)
+          오늘 참여자 체크 (<span id="totalPoolCount">80</span>명 중 선택)
         </label>
-        <button onclick="clearTodayAttendance()" class="text-[11px] text-slate-400 hover:text-rose-500 transition">출석 초기화</button>
+        <div class="flex items-center gap-2">
+          <button onclick="openAddModal()" class="text-[11px] text-blue-600 font-bold bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg border border-blue-200 flex items-center gap-1 transition">
+            <i data-lucide="user-plus" class="w-3 h-3"></i>
+            <span>봉사자 추가</span>
+          </button>
+          <span class="text-slate-200 text-xs">|</span>
+          <button onclick="clearTodayAttendance()" class="text-[11px] text-slate-400 hover:text-rose-500 transition">출석 초기화</button>
+        </div>
       </div>
 
       <div class="relative">
@@ -48,11 +55,11 @@
         <input type="text" id="attSearchInput" oninput="filterAttendancePool()" placeholder="봉사자 검색 (이름 또는 전화번호 뒷자리)" class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-500">
       </div>
 
-      <div class="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1 no-scrollbar" id="attendanceGrid"></div>
-      <p class="text-[10px] text-slate-400 text-center">* 터치하면 오늘 참여자로 등록/취소됩니다.</p>
+      <div class="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto pr-1 no-scrollbar" id="attendanceGrid"></div>
+      <p class="text-[10px] text-slate-400 text-center">* 터치 시 출석 등록 / 톱니바퀴(⚙️) 터치 시 정보 수정·삭제</p>
     </section>
 
-    <!-- 2단계: 오늘 참여자 중 배정할 인원 다중 선택 (배정 완료 인원 선택 차단) -->
+    <!-- 2단계: 오늘 참여자 중 배정할 인원 다중 선택 -->
     <section class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2.5">
       <div class="flex items-center justify-between">
         <label class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
@@ -70,7 +77,7 @@
       <p class="text-[10px] text-slate-400 text-center">* 이미 배정된 참여자는 회색으로 잠겨 선택할 수 없습니다.</p>
     </section>
 
-    <!-- 3단계: 구역카드 선택 (2열 그리드로 확장) -->
+    <!-- 3단계: 구역카드 선택 (2열 그리드) -->
     <section class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2.5">
       <div class="flex items-center justify-between">
         <label class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
@@ -85,7 +92,6 @@
         <input type="text" id="zoneSearchInput" oninput="filterZones()" placeholder="구역 번호나 명칭 검색 (예: 36, 안동국시)" class="w-full pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-emerald-500">
       </div>
 
-      <!-- 2열 그리드로 배치하여 한 화면에 더 많이 노출 -->
       <div class="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1 no-scrollbar" id="zoneList"></div>
     </section>
 
@@ -115,8 +121,72 @@
 
   </main>
 
+  <!-- 봉사자 현장 추가 모달창 -->
+  <div id="addModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl p-5 w-full max-w-xs shadow-2xl border border-slate-100 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+          <i data-lucide="user-plus" class="w-4 h-4 text-blue-600"></i>
+          새 봉사자 현장 등록
+        </h3>
+        <button onclick="closeAddModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="space-y-2.5">
+        <div>
+          <label class="text-[11px] font-medium text-slate-600 mb-1 block">이름</label>
+          <input type="text" id="newVolName" placeholder="예: 홍길동" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="text-[11px] font-medium text-slate-600 mb-1 block">전화번호 (선택)</label>
+          <input type="tel" id="newVolPhone" placeholder="예: 010-1234-5678 (비워둬도 됨)" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-500">
+        </div>
+      </div>
+      <div class="flex gap-2 pt-1">
+        <button onclick="closeAddModal()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl transition">취소</button>
+        <button onclick="addNewVolunteer()" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-md shadow-blue-600/20">등록 및 출석</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 봉사자 정보 수정 / 삭제 모달창 -->
+  <div id="editModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl p-5 w-full max-w-xs shadow-2xl border border-slate-100 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+          <i data-lucide="user-cog" class="w-4 h-4 text-slate-700"></i>
+          봉사자 정보 수정
+        </h3>
+        <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <input type="hidden" id="editVolId">
+      <div class="space-y-2.5">
+        <div>
+          <label class="text-[11px] font-medium text-slate-600 mb-1 block">이름</label>
+          <input type="text" id="editVolName" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="text-[11px] font-medium text-slate-600 mb-1 block">전화번호</label>
+          <input type="tel" id="editVolPhone" placeholder="010-0000-0000" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-500">
+        </div>
+      </div>
+      <div class="flex flex-col gap-2 pt-1">
+        <div class="flex gap-2">
+          <button onclick="closeEditModal()" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-xl transition">취소</button>
+          <button onclick="saveEditVolunteer()" class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-md shadow-blue-600/20">수정 완료</button>
+        </div>
+        <button onclick="deleteVolunteerPermanently()" class="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs rounded-xl transition border border-rose-200">
+          이 봉사자 명단에서 완전히 삭제
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    const allVolunteers = [
+    const defaultVolunteers = [
       { id: 1, name: "이은평", phone: "010-9918-2179" }, { id: 2, name: "서현우", phone: "010-4066-1935" },
       { id: 3, name: "구은희", phone: "010-3902-1935" }, { id: 4, name: "김지훈", phone: "010-2764-1914" },
       { id: 5, name: "하서진", phone: "010-5521-7984" }, { id: 6, name: "이지후", phone: "010-4677-8226" },
@@ -155,9 +225,18 @@
       { id: 71, name: "김성희", phone: "010-8121-4434" }, { id: 72, name: "김지호", phone: "010-5485-5249" },
       { id: 73, name: "류상화", phone: "010-9815-2490" }, { id: 74, name: "양순남", phone: "010-6472-1721" },
       { id: 75, name: "장옥희", phone: "010-4242-7055" }, { id: 76, name: "정송식", phone: "010-3523-2340" },
-      { id: 77, name: "조명희", phone: "010-5508-2497" }, { id: 78, name: "최미화", phone: "010-6567-0239" },
-      { id: 79, name: "이예지", phone: "" }, { id: 80, name: "이은지", phone: "" }
+      { id: 77, name: "조명희", phone: "010-5508-2497" },
+      { id: 78, name: "최미화", phone: "" },
+      { id: 79, name: "이은지", phone: "" },
+      { id: 80, name: "이예지", phone: "" }
     ];
+
+    // 저장소에 커스텀 마스터 목록이 있으면 그것을 쓰고, 없으면 기본값으로 초기화
+    let allVolunteers = JSON.parse(localStorage.getItem('v6_master_volunteers'));
+    if (!allVolunteers || allVolunteers.length === 0) {
+      allVolunteers = [...defaultVolunteers];
+      localStorage.setItem('v6_master_volunteers', JSON.stringify(allVolunteers));
+    }
 
     // [구역번호, 구역명, 상세 표기 주소]
     const rawZones = [
@@ -336,16 +415,21 @@
       renderAssignedBoard();
     }
 
-    // 1단계: 당일 출석 체크 풀
+    // 1단계: 출석 풀 렌더링 (설정 버튼 추가)
     function renderAttendancePool() {
       const container = document.getElementById('attendanceGrid');
       container.innerHTML = filteredPool.map(v => {
         const isAttended = attendedIds.has(v.id);
         return `
-          <button type="button" onclick="toggleAttendance(${v.id})" class="p-2 rounded-xl border text-left text-xs transition flex items-center justify-between ${isAttended ? 'bg-blue-50 border-blue-400 text-blue-900 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}">
-            <span class="truncate">${v.name}</span>
-            ${isAttended ? '<i data-lucide="check" class="w-3.5 h-3.5 text-blue-600"></i>' : '<span class="text-[10px] text-slate-400">출석</span>'}
-          </button>
+          <div class="p-1.5 rounded-xl border transition flex items-center justify-between ${isAttended ? 'bg-blue-50 border-blue-400 text-blue-900 font-bold' : 'bg-slate-50 border-slate-200 text-slate-600'}">
+            <button type="button" onclick="toggleAttendance(${v.id})" class="flex-1 text-left text-xs truncate flex items-center gap-1">
+              <span class="truncate">${v.name}</span>
+              ${isAttended ? '<i data-lucide="check" class="w-3.5 h-3.5 text-blue-600 shrink-0"></i>' : ''}
+            </button>
+            <button type="button" onclick="openEditModal(${v.id})" class="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-md transition shrink-0 ml-1">
+              <i data-lucide="settings-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
         `;
       }).join('');
       lucide.createIcons();
@@ -373,6 +457,129 @@
       }
     }
 
+    // 모달: 신규 등록
+    function openAddModal() {
+      document.getElementById('addModal').classList.remove('hidden');
+      document.getElementById('newVolName').focus();
+    }
+
+    function closeAddModal() {
+      document.getElementById('addModal').classList.add('hidden');
+      document.getElementById('newVolName').value = '';
+      document.getElementById('newVolPhone').value = '';
+    }
+
+    function addNewVolunteer() {
+      const name = document.getElementById('newVolName').value.trim();
+      let phone = document.getElementById('newVolPhone').value.trim();
+
+      if (!name) {
+        alert('봉사자 이름을 입력해 주세요.');
+        return;
+      }
+
+      const newId = Date.now();
+      const newVol = { id: newId, name: name, phone: phone };
+
+      allVolunteers.push(newVol);
+      localStorage.setItem('v6_master_volunteers', JSON.stringify(allVolunteers));
+
+      filteredPool = [...allVolunteers];
+      attendedIds.add(newId);
+      localStorage.setItem('v6_attended_ids', JSON.stringify([...attendedIds]));
+
+      document.getElementById('totalPoolCount').innerText = allVolunteers.length;
+      closeAddModal();
+
+      renderAttendancePool();
+      renderTodayVolGrid();
+      alert(`'${name}' 봉사자가 추가되었으며, 오늘 출석 명단에 자동 등록되었습니다.`);
+    }
+
+    // 모달: 정보 수정 및 삭제
+    function openEditModal(id) {
+      const vol = allVolunteers.find(v => v.id === id);
+      if (!vol) return;
+
+      document.getElementById('editVolId').value = vol.id;
+      document.getElementById('editVolName').value = vol.name;
+      document.getElementById('editVolPhone').value = vol.phone || '';
+      document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.add('hidden');
+    }
+
+    function saveEditVolunteer() {
+      const id = Number(document.getElementById('editVolId').value);
+      const name = document.getElementById('editVolName').value.trim();
+      const phone = document.getElementById('editVolPhone').value.trim();
+
+      if (!name) {
+        alert('이름은 비워둘 수 없습니다.');
+        return;
+      }
+
+      const vol = allVolunteers.find(v => v.id === id);
+      if (vol) {
+        vol.name = name;
+        vol.phone = phone;
+
+        // 이미 배정된 구역이 있다면 배정 정보도 동기화
+        zones.forEach(z => {
+          z.assignedVols.forEach(av => {
+            if (av.id === id) {
+              av.name = name;
+              av.phone = phone;
+            }
+          });
+        });
+        saveAssignments();
+
+        localStorage.setItem('v6_master_volunteers', JSON.stringify(allVolunteers));
+        filteredPool = [...allVolunteers];
+        closeEditModal();
+
+        renderAttendancePool();
+        renderTodayVolGrid();
+        renderAssignedBoard();
+        alert('정보가 정상적으로 수정되었습니다.');
+      }
+    }
+
+    function deleteVolunteerPermanently() {
+      const id = Number(document.getElementById('editVolId').value);
+      const vol = allVolunteers.find(v => v.id === id);
+      if (!vol) return;
+
+      if (!confirm(`'${vol.name}' 봉사자를 전체 명단에서 완전히 삭제하시겠습니까?\n(배정된 구역 및 출석 정보에서도 함께 제거됩니다)`)) {
+        return;
+      }
+
+      allVolunteers = allVolunteers.filter(v => v.id !== id);
+      localStorage.setItem('v6_master_volunteers', JSON.stringify(allVolunteers));
+
+      attendedIds.delete(id);
+      selectedVolIds.delete(id);
+      localStorage.setItem('v6_attended_ids', JSON.stringify([...attendedIds]));
+
+      zones.forEach(z => {
+        z.assignedVols = z.assignedVols.filter(av => av.id !== id);
+      });
+      saveAssignments();
+
+      filteredPool = [...allVolunteers];
+      document.getElementById('totalPoolCount').innerText = allVolunteers.length;
+      closeEditModal();
+
+      renderAttendancePool();
+      renderTodayVolGrid();
+      renderZones();
+      renderAssignedBoard();
+      alert('봉사자가 명단에서 삭제되었습니다.');
+    }
+
     // 2단계: 오늘 참여자 그리드
     function renderTodayVolGrid() {
       const container = document.getElementById('todayVolGrid');
@@ -392,13 +599,14 @@
         const isAssigned = assignedMap.has(v.id);
         const assignedZoneNo = assignedMap.get(v.id);
         const isChecked = selectedVolIds.has(v.id);
+        const phoneTail = v.phone ? v.phone.slice(-4) : '번호없음';
 
         if (isAssigned) {
           return `
             <div class="p-2.5 rounded-xl border border-slate-200/80 bg-slate-100 text-slate-400 text-xs flex items-center justify-between opacity-60 cursor-not-allowed select-none">
               <div class="flex flex-col">
                 <span class="font-medium line-through">${v.name}</span>
-                <span class="text-[10px] text-slate-400 font-mono">${v.phone.slice(-4)}</span>
+                <span class="text-[10px] text-slate-400 font-mono">${phoneTail}</span>
               </div>
               <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 font-bold">${assignedZoneNo}호 배정됨</span>
             </div>
@@ -409,7 +617,7 @@
           <button type="button" onclick="toggleSelectVol(${v.id})" class="p-2.5 rounded-xl border text-left text-xs transition flex items-center justify-between ${isChecked ? 'bg-blue-600 text-white border-blue-600 font-bold shadow-sm' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'}">
             <div class="flex flex-col">
               <span>${v.name}</span>
-              <span class="text-[10px] ${isChecked ? 'text-blue-200' : 'text-slate-400'} font-mono">${v.phone.slice(-4)}</span>
+              <span class="text-[10px] ${isChecked ? 'text-blue-200' : 'text-slate-400'} font-mono">${phoneTail}</span>
             </div>
             ${isChecked ? '<i data-lucide="check-circle-2" class="w-4 h-4 text-white"></i>' : '<div class="w-4 h-4 rounded-full border border-slate-300 bg-white"></div>'}
           </button>
@@ -456,7 +664,7 @@
       }
     }
 
-    // 3단계: 구역 리스트 (2열 그리드 전용 렌더링)
+    // 3단계: 구역 리스트 (2열 그리드)
     function renderZones() {
       const container = document.getElementById('zoneList');
       container.innerHTML = filteredZones.map(z => {
@@ -560,10 +768,10 @@
               <div class="flex items-center justify-between bg-white p-2 rounded-lg border border-slate-100 text-xs">
                 <div class="flex items-center gap-1.5">
                   <span class="font-bold text-slate-800">${v.name}</span>
-                  <span class="text-slate-400 text-[10px] font-mono">(${v.phone.slice(-4)})</span>
+                  <span class="text-slate-400 text-[10px] font-mono">${v.phone ? `(${v.phone.slice(-4)})` : '(번호없음)'}</span>
                 </div>
                 <div class="flex items-center gap-1">
-                  <button onclick="sendIndividualSMS('${v.phone}', '${z.no}', '${z.name}', '${z.address}')" class="px-2 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-[10px] font-bold border border-emerald-200 flex items-center gap-1 transition">
+                  <button onclick="sendIndividualSMS('${v.phone || ''}', '${z.no}', '${z.name}', '${z.address}')" class="px-2 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-[10px] font-bold border border-emerald-200 flex items-center gap-1 transition">
                     <i data-lucide="message-square" class="w-3 h-3"></i>
                     <span>문자</span>
                   </button>
@@ -580,7 +788,6 @@
       lucide.createIcons();
     }
 
-    // 링크 없는 간결한 안내 문자 발송
     function sendIndividualSMS(phone, zoneNo, zoneName, fullAddr) {
       const cleanPhone = phone.replace(/[^0-9]/g, '');
       const messageBody = `[봉사 구역 배정 안내]
@@ -593,7 +800,12 @@
 
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       const sep = isIOS ? '&' : '?';
-      window.location.href = `sms:${cleanPhone}${sep}body=${encodeURIComponent(messageBody)}`;
+
+      if (!cleanPhone) {
+        window.location.href = `sms:${sep}body=${encodeURIComponent(messageBody)}`;
+      } else {
+        window.location.href = `sms:${cleanPhone}${sep}body=${encodeURIComponent(messageBody)}`;
+      }
     }
 
     function removeVolunteerFromZone(zoneId, volId) {
