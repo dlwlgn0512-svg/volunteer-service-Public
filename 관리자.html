@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>봉사 구역 관리자 관제 센터</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <style>
+    body { font-family: 'Pretendard', sans-serif; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen pb-16">
+
+  <!-- 관리자 글로벌 상단 헤더 -->
+  <header class="border-b border-slate-800 bg-slate-950/80 sticky top-0 z-30 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/30">
+          <i data-lucide="shield-check" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-bold text-white tracking-tight flex items-center gap-2">
+            봉사 구역 총괄 관제 센터
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 font-medium">HQ Console</span>
+          </h1>
+          <p class="text-[11px] text-slate-400">현장 배정 실시간 집계 및 엑셀 데이터 관리</p>
+        </div>
+      </div>
+
+      <!-- 데이터 도구 버튼 -->
+      <div class="flex items-center gap-2">
+        <button onclick="exportToCSV()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition">
+          <i data-lucide="download" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>엑셀(CSV) 저장</span>
+        </button>
+        <button onclick="resetAllData()" class="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-semibold flex items-center gap-1.5 transition">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          <span>배정 초기화</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    
+    <!-- 4대 종합 지표 KPI -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex items-center gap-3.5">
+        <div class="w-11 h-11 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
+          <i data-lucide="users" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <span class="text-slate-400 text-xs">오늘 출석 인원</span>
+          <p id="statAttended" class="text-xl font-bold text-white">0<span class="text-xs font-normal text-slate-400 ml-1">명</span></p>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex items-center gap-3.5">
+        <div class="w-11 h-11 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+          <i data-lucide="check-circle" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <span class="text-slate-400 text-xs">배정 완료 인원 / 구역</span>
+          <p id="statAssigned" class="text-xl font-bold text-emerald-400">0명 <span class="text-xs font-normal text-slate-400">/ 0곳</span></p>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex items-center gap-3.5">
+        <div class="w-11 h-11 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+          <i data-lucide="alert-circle" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <span class="text-slate-400 text-xs">남은 미배정 구역</span>
+          <p id="statUnassignedZones" class="text-xl font-bold text-amber-400">124<span class="text-xs font-normal text-slate-400 ml-1">곳</span></p>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex items-center gap-3.5">
+        <div class="w-11 h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
+          <i data-lucide="pie-chart" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <span class="text-slate-400 text-xs">구역 가동률</span>
+          <p id="statProgress" class="text-xl font-bold text-indigo-400">0.0%</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 구역 카드 관리 & 필터 그리드 -->
+    <section class="bg-slate-800/50 border border-slate-700/60 rounded-2xl p-5 sm:p-6 space-y-4">
+      
+      <!-- 컨트롤 바 (검색 + 상태 필터) -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="flex items-center gap-1.5 bg-slate-900/80 p-1 rounded-xl border border-slate-700/60 text-xs w-full sm:w-auto">
+          <button onclick="setFilter('all')" id="filterAll" class="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-semibold transition">전체 (124)</button>
+          <button onclick="setFilter('unassigned')" id="filterUnassigned" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">미배정 구역</button>
+          <button onclick="setFilter('assigned')" id="filterAssigned" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition">배정된 구역</button>
+        </div>
+
+        <div class="relative w-full sm:w-72">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+          <input type="text" id="adminSearchInput" oninput="renderZoneGrid()" placeholder="구역 번호, 구역명, 봉사자 이름 검색" class="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+        </div>
+      </div>
+
+      <!-- 구역 카드 매트릭스 그리드 -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[600px] overflow-y-auto pr-1 no-scrollbar" id="adminZoneGrid"></div>
+    </section>
+
+  </div>
+
+  <script>
+    const allVolunteers = [
+      { id: 1, name: "이은평", phone: "010-9918-2179" }, { id: 2, name: "서현우", phone: "010-4066-1935" },
+      { id: 3, name: "구은희", phone: "010-3902-1935" }, { id: 4, name: "김지훈", phone: "010-2764-1914" },
+      { id: 5, name: "하서진", phone: "010-5521-7984" }, { id: 6, name: "이지후", phone: "010-4677-8226" },
+      { id: 7, name: "정수빈", phone: "010-9556-9984" }, { id: 8, name: "김명분", phone: "010-3758-9377" },
+      { id: 9, name: "김옥란", phone: "010-5067-4241" }, { id: 10, name: "서애주", phone: "010-2738-2755" },
+      { id: 11, name: "나승범", phone: "010-2835-0979" }, { id: 12, name: "류한상", phone: "010-2911-9037" },
+      { id: 13, name: "박칠만", phone: "010-5551-8994" }, { id: 14, name: "유동석", phone: "010-7194-6946" },
+      { id: 15, name: "이일천", phone: "010-7245-0729" }, { id: 16, name: "임원진", phone: "010-9870-0410" },
+      { id: 17, name: "김영심", phone: "010-8283-9410" }, { id: 18, name: "임다솜", phone: "010-9805-9410" },
+      { id: 19, name: "임유빈", phone: "010-4677-9410" }, { id: 20, name: "김창홍", phone: "010-3322-7440" },
+      { id: 21, name: "김정희", phone: "010-3827-7440" }, { id: 22, name: "김종학", phone: "010-3543-9721" },
+      { id: 23, name: "정영희", phone: "010-3650-9721" }, { id: 24, name: "김수정", phone: "010-7736-6177" },
+      { id: 25, name: "김경민", phone: "010-9802-1935" }, { id: 26, name: "김창수", phone: "010-2540-8569" },
+      { id: 27, name: "류진실", phone: "010-9329-3378" }, { id: 28, name: "박성준", phone: "010-2644-8214" },
+      { id: 29, name: "소병진", phone: "010-4814-9623" }, { id: 30, name: "신솔이", phone: "010-3886-1914" },
+      { id: 31, name: "전동욱", phone: "010-3224-1083" }, { id: 32, name: "장민기", phone: "010-2909-1458" },
+      { id: 33, name: "방민지", phone: "010-2830-9352" }, { id: 34, name: "남창식", phone: "010-3813-1914" },
+      { id: 35, name: "권윤희", phone: "010-2157-1975" }, { id: 36, name: "권숙이", phone: "010-8886-8662" },
+      { id: 37, name: "권정혜", phone: "010-5628-1914" }, { id: 38, name: "김규현", phone: "010-8698-3321" },
+      { id: 39, name: "유금년", phone: "010-9767-6950" }, { id: 40, name: "이선혜", phone: "010-2289-3190" },
+      { id: 41, name: "이지윤", phone: "010-6290-2539" }, { id: 42, name: "정수만", phone: "010-3852-2042" },
+      { id: 43, name: "이선애", phone: "010-4564-2884" }, { id: 44, name: "정희도", phone: "010-2560-0004" },
+      { id: 45, name: "황민우", phone: "010-4878-7948" }, { id: 46, name: "정직한", phone: "010-2122-2990" },
+      { id: 47, name: "이슬", phone: "010-2642-3450" }, { id: 48, name: "이영길", phone: "010-2503-9886" },
+      { id: 49, name: "박노순", phone: "010-2699-9886" }, { id: 50, name: "김대호", phone: "010-4972-2487" },
+      { id: 51, name: "손귀숙", phone: "010-9408-5054" }, { id: 52, name: "김은혜", phone: "010-7152-0780" },
+      { id: 53, name: "김서영", phone: "010-4858-2487" }, { id: 54, name: "김상연", phone: "010-2992-1914" },
+      { id: 55, name: "김예지", phone: "010-4321-2728" }, { id: 56, name: "오영숙", phone: "010-7360-4005" },
+      { id: 57, name: "이정희", phone: "010-8010-4595" }, { id: 58, name: "이태걸", phone: "010-2438-4595" },
+      { id: 59, name: "정성훈", phone: "010-2693-0183" }, { id: 60, name: "조일성", phone: "010-2602-1868" },
+      { id: 61, name: "주근자", phone: "010-7326-2591" }, { id: 62, name: "권보호", phone: "010-8520-4722" },
+      { id: 63, name: "한미희", phone: "010-8640-0311" }, { id: 64, name: "전광훈", phone: "010-6303-1914" },
+      { id: 65, name: "조소라", phone: "010-2809-1868" }, { id: 66, name: "최화평", phone: "010-8315-8901" },
+      { id: 67, name: "황중현", phone: "010-6667-1914" }, { id: 68, name: "한지윤", phone: "010-6587-7806" },
+      { id: 69, name: "김경애", phone: "010-9386-1154" }, { id: 70, name: "김동일", phone: "010-3811-4434" },
+      { id: 71, name: "김성희", phone: "010-8121-4434" }, { id: 72, name: "김지호", phone: "010-5485-5249" },
+      { id: 73, name: "류상화", phone: "010-9815-2490" }, { id: 74, name: "양순남", phone: "010-6472-1721" },
+      { id: 75, name: "장옥희", phone: "010-4242-7055" }, { id: 76, name: "정송식", phone: "010-3523-2340" },
+      { id: 77, name: "조명희", phone: "010-5508-2497" }
+    ];
+
+    const rawZones = [
+      ["1", "동일가스 충전소"], ["2", "중동시장"], ["3", "수성골드클래스"],
+      ["4-1", "서울중동아파트 1동"], ["4-2", "서울중동아파트 2동"], ["4-3", "서울중동아파트 3동"],
+      ["4-4", "서울중동아파트 4동"], ["4-5", "서울중동아파트 5동"], ["5", "수성뷰웰리버파크"],
+      ["6", "중동새마을금고"], ["7", "백궁회초밥"], ["8", "신우유통 중동1호점"],
+      ["9", "수성구보건소"], ["10", "수성효성해링턴플레이스"], ["11", "롯데슈퍼 수성점"],
+      ["12", "맥도날드 희망DT점"], ["13", "아우디"], ["14", "제니스 카매니아"],
+      ["15", "GS25 중동베스트점"], ["16-1", "그랜뷰 앞 주택"], ["16-2", "그랜뷰(1)"],
+      ["16-3", "그랜뷰(2)"], ["17", "상록수어린이공원"], ["18", "쉐보레 바로서비스"],
+      ["19", "효성병원"], ["20", "중동잔치국수"], ["21", "다래식당"],
+      ["22", "송원식당"], ["23", "수성센트럴화성파크드림"], ["24", "스타벅스 중동네거리점"],
+      ["25", "맨션5"], ["26", "네비게이션AS센터"], ["27", "경일약품"],
+      ["28", "진영마트"], ["29", "안영희미용실"], ["30", "조은마트"],
+      ["31", "황금어린이공원"], ["32", "해맑은어린이집"], ["33", "아름빌플러스"],
+      ["34", "대경놀이터"], ["35", "투썸 황금점"], ["36", "안동국시"],
+      ["37", "살롱드B"], ["38", "이마트24"], ["39", "델타석유"],
+      ["40", "황금천주교회"], ["41", "예당피부관리"], ["42", "머리이야기"],
+      ["43", "아름빌"], ["44", "황금인테리어"], ["45", "곰막창"],
+      ["46", "코리아나모텔"], ["47", "KFC"], ["48", "대구은행 황금네거리"],
+      ["49", "어린이세상"], ["50", "삼성스토어"], ["51", "수성케이블"],
+      ["52", "캐슬5단지"], ["53", "3주공 앞 상가/1단지 상가"], ["54", "3주공 - 306동"],
+      ["55", "3주공 - 305동"], ["56", "3주공 - 304동"], ["57", "3주공 - 303동"],
+      ["58", "3주공 - 302동"], ["59", "3주공 - 301동"], ["60", "캐슬골드파크 상가"],
+      ["61", "캐슬골드파크 뒷시장"], ["62", "캐슬4단지/박물관"], ["63", "황금힐스테이트"],
+      ["64", "우방신천지타운/하이츠"], ["65", "경북고/우방타운2차"], ["66-1", "목련아파트(1)"],
+      ["66-2", "목련아파트(2)"], ["67", "선스포츠프라자"], ["68", "명문빌라"],
+      ["69", "화산샬렛아파트"], ["70", "경신중고등학교"], ["71", "범어힐스테이트"],
+      ["72", "헤어두툼"], ["73", "안심약국"], ["74", "지성학원 범어점"],
+      ["75", "남부DC마트"], ["76", "경북아파트"], ["77", "금봉빌라"],
+      ["78", "가든주유소"], ["79", "빌리브범어"], ["80", "장원맨션"],
+      ["81", "우방청솔맨션"], ["82", "범어삼성쉐르빌"], ["83", "범어효성해링턴플레이스"],
+      ["84", "신통외국어학원"], ["85", "하이카프라자"], ["86", "빌리브범어120"],
+      ["87", "남부상가시장"], ["88", "아크로타워"], ["89", "아크로타워부동산"],
+      ["90", "범어라온프라이빗"], ["91", "그린힐골프연습장"], ["92", "덕일어린이집"],
+      ["93", "꼬 치킨"], ["94", "범양맨션"], ["95", "범어브릿지부동산"],
+      ["96", "롯데리아"], ["97", "동진아파트"], ["98", "참기름"],
+      ["99", "만촌교회"], ["100", "오성중고교"], ["101", "성광타운"],
+      ["102", "오성골프 앞 주택"], ["103", "오성골프연습장"], ["104", "버거킹 대구만촌점"],
+      ["105", "수성대학교"], ["106", "만촌3동주민센터"], ["107", "만촌119안전센터"],
+      ["108", "만촌시장"], ["109", "성좌아파트"], ["110", "소선여중"],
+      ["111", "대청초등학교"], ["112", "혜화여고"], ["113", "만촌3동경로당"],
+      ["114", "만촌자이르네"], ["115", "산장맨션"], ["116", "만촌삼정그린코아"],
+      ["117(X)", "뉴대구어린이집(재개발)"], ["118(X)", "새마을금고(재개발)"], ["119", "만촌화성파크드림3차"],
+      ["120", "대륜중고/우방팔레스"], ["121(X)", "페도라안경(재개발)"], ["122(X)", "한도아파트(재개발)"],
+      ["123", "만촌우방2차"], ["124", "만촌우방1차"]
+    ];
+
+    let zones = rawZones.map((item, idx) => ({ 
+      id: idx + 1, 
+      no: item[0], 
+      name: item[1],
+      assignedVols: []
+    }));
+
+    // index.html(v6)과 실시간 연동되는 로컬 저장소 키 사용
+    let attendedIds = new Set(JSON.parse(localStorage.getItem('v6_attended_ids')) || []);
+    const savedAssignments = JSON.parse(localStorage.getItem('v6_zone_assignments')) || {};
+    zones.forEach(z => {
+      if (savedAssignments[z.id]) {
+        z.assignedVols = savedAssignments[z.id];
+      }
+    });
+
+    let currentFilter = 'all';
+
+    function init() {
+      renderZoneGrid();
+    }
+
+    function setFilter(f) {
+      currentFilter = f;
+      ['all', 'unassigned', 'assigned'].forEach(type => {
+        const btn = document.getElementById('filter' + type.charAt(0).toUpperCase() + type.slice(1));
+        if (type === f) {
+          btn.className = 'px-3 py-1.5 rounded-lg bg-blue-600 text-white font-semibold transition';
+        } else {
+          btn.className = 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition';
+        }
+      });
+      renderZoneGrid();
+    }
+
+    function renderZoneGrid() {
+      const q = document.getElementById('adminSearchInput').value.trim().toLowerCase();
+      const container = document.getElementById('adminZoneGrid');
+
+      // 종합 통계 계산
+      const attendedCount = attendedIds.size;
+      const totalAssignedPeople = zones.reduce((acc, z) => acc + z.assignedVols.length, 0);
+      const assignedZonesCount = zones.filter(z => z.assignedVols.length > 0).length;
+      const unassignedZonesCount = zones.length - assignedZonesCount;
+      const progress = ((assignedZonesCount / zones.length) * 100).toFixed(1);
+
+      document.getElementById('statAttended').innerHTML = `${attendedCount}<span class="text-xs font-normal text-slate-400 ml-1">명</span>`;
+      document.getElementById('statAssigned').innerHTML = `${totalAssignedPeople}명 <span class="text-xs font-normal text-slate-400">/ ${assignedZonesCount}곳</span>`;
+      document.getElementById('statUnassignedZones').innerHTML = `${unassignedZonesCount}<span class="text-xs font-normal text-slate-400 ml-1">곳</span>`;
+      document.getElementById('statProgress').innerText = `${progress}%`;
+
+      const filtered = zones.filter(z => {
+        const hasVols = z.assignedVols.length > 0;
+        const matchFilter = currentFilter === 'all' ? true : (currentFilter === 'assigned' ? hasVols : !hasVols);
+        const matchQuery = z.no.toLowerCase().includes(q) || 
+                             z.name.toLowerCase().includes(q) || 
+                             z.assignedVols.some(v => v.name.toLowerCase().includes(q) || v.phone.includes(q));
+        return matchFilter && matchQuery;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="col-span-full py-16 text-center text-slate-500 text-xs">일치하는 구역 데이터가 없습니다.</div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(z => {
+        const count = z.assignedVols.length;
+        const isAssigned = count > 0;
+
+        return `
+          <div class="p-3.5 bg-slate-900/70 border rounded-2xl flex flex-col justify-between space-y-3 transition-all ${isAssigned ? 'border-blue-500/40 bg-blue-950/10' : 'border-slate-700/60'}">
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex items-center gap-2 overflow-hidden">
+                <span class="px-2 py-0.5 rounded-md font-mono font-bold text-xs shrink-0 ${isAssigned ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'}">${z.no}호</span>
+                <span class="text-xs font-bold text-slate-200 truncate">${z.name}</span>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${isAssigned ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'bg-slate-800 text-slate-500'}">
+                ${isAssigned ? `${count}명 배정` : '미배정'}
+              </span>
+            </div>
+
+            <!-- 구역에 배정된 봉사자 목록 표시 -->
+            <div class="pt-2 border-t border-slate-800/80 space-y-1.5 min-h-[36px]">
+              ${isAssigned ? z.assignedVols.map(v => `
+                <div class="flex items-center justify-between bg-slate-800/60 px-2 py-1 rounded-lg text-xs">
+                  <div class="flex items-center gap-1.5">
+                    <i data-lucide="user" class="w-3 h-3 text-blue-400"></i>
+                    <span class="font-bold text-slate-200">${v.name}</span>
+                    <span class="text-[10px] text-slate-400 font-mono">(${v.phone.slice(-4)})</span>
+                  </div>
+                  <button onclick="unassignVolunteer(${z.id}, ${v.id})" class="text-[10px] text-rose-400 hover:text-rose-300 transition">제외</button>
+                </div>
+              `).join('') : `
+                <div class="text-[11px] text-slate-500 italic flex items-center gap-1 py-1">
+                  <i data-lucide="clock" class="w-3 h-3 text-slate-600"></i>
+                  <span>배정 대기 중</span>
+                </div>
+              `}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function unassignVolunteer(zoneId, volId) {
+      const targetZone = zones.find(z => z.id === zoneId);
+      const targetVol = targetZone.assignedVols.find(v => v.id === volId);
+      if (confirm(`${targetZone.no}호 구역에서 [${targetVol.name}] 봉사자를 배정 제외하시겠습니까?`)) {
+        targetZone.assignedVols = targetZone.assignedVols.filter(v => v.id !== volId);
+        saveAssignments();
+        renderZoneGrid();
+      }
+    }
+
+    function resetAllData() {
+      if (confirm('현재 배정된 모든 구역 내역을 초기화하시겠습니까?\n(출석 체크 기록은 유지됩니다)')) {
+        zones.forEach(z => z.assignedVols = []);
+        saveAssignments();
+        renderZoneGrid();
+      }
+    }
+
+    function saveAssignments() {
+      const map = {};
+      zones.forEach(z => {
+        if (z.assignedVols.length > 0) map[z.id] = z.assignedVols;
+      });
+      localStorage.setItem('v6_zone_assignments', JSON.stringify(map));
+    }
+
+    // 엑셀(CSV) 다운로드 함수
+    function exportToCSV() {
+      let csv = "\uFEFF구역번호,구역명칭,배정상태,배정인원수,담당봉사자,연락처,배정시각\n";
+      
+      zones.forEach(z => {
+        if (z.assignedVols.length === 0) {
+          csv += `"${z.no}","${z.name}","미배정","0","-","-","-"\n`;
+        } else {
+          z.assignedVols.forEach(v => {
+            csv += `"${z.no}","${z.name}","배정완료","${z.assignedVols.length}","${v.name}","${v.phone}","${v.time || '-'}"\n`;
+          });
+        }
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `봉사구역_배정집계표_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
