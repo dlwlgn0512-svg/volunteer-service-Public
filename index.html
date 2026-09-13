@@ -113,19 +113,31 @@
       <p class="f-badge text-slate-400 text-center">* 이미 배정된 참여자도 터치 선택 후 [배정해제]할 수 있습니다.</p>
     </section>
 
-    <!-- 3단계: 구역카드 선택 (유동형 2열 그리드 + 팀 수 + 방문금지 표기) -->
+    <!-- 3단계: 구역카드 선택 (최신 구역 데이터 적용) -->
     <section class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
       <div class="flex items-center justify-between">
         <label class="f-title font-bold text-slate-800 flex items-center gap-1.5">
           <span class="w-4 h-4 rounded-full bg-slate-900 text-white text-[10px] flex items-center justify-center font-bold">3</span>
           구역카드 선택 (<span id="zoneCountDisplay">131</span>개)
         </label>
-        <span class="f-sub text-emerald-600 font-bold truncate max-w-[170px]" id="selectedZoneLabel">1호 선택됨 (권장 1팀)</span>
+        <div class="flex items-center gap-1 shrink-0">
+          <input type="file" id="zoneExcelFileInput" accept=".xlsx, .xls" class="hidden" onchange="handleZoneExcelUpload(event)">
+          <button onclick="document.getElementById('zoneExcelFileInput').click()" class="f-sub text-blue-700 font-bold bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg border border-blue-200 flex items-center gap-1 transition">
+            <i data-lucide="file-spreadsheet" class="w-3 h-3"></i>
+            <span>구역 엑셀등록</span>
+          </button>
+          <span class="text-slate-200 text-xs">|</span>
+          <button onclick="resetZoneData()" class="f-sub text-slate-400 hover:text-rose-500 transition">구역초기화</button>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between px-1">
+        <span class="f-sub text-emerald-600 font-bold truncate max-w-[280px]" id="selectedZoneLabel">1호 선택됨 (권장 1팀)</span>
       </div>
 
       <div class="relative">
         <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5"></i>
-        <input type="text" id="zoneSearchInput" oninput="filterZones()" placeholder="구역 번호나 명칭 검색 (예: 20, 중동잔치국수)" class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl f-body focus:outline-none focus:border-emerald-500">
+        <input type="text" id="zoneSearchInput" oninput="filterZones()" placeholder="구역 번호나 명칭, 주소 검색" class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl f-body focus:outline-none focus:border-emerald-500">
       </div>
 
       <div class="grid grid-cols-2 gap-1.5 max-h-64 overflow-y-auto pr-0.5 no-scrollbar" id="zoneList"></div>
@@ -138,7 +150,7 @@
         <span id="assignBtnText">선택한 인원 배정 확정하기</span>
       </button>
       <p class="f-badge text-slate-400 text-center mt-1.5">
-        * 배정 완료 후 아래 현황판에서 문자 발송 시 방문금지 목록이 함께 포함됩니다.
+        * 배정 완료 후 아래 현황판에서 개별적으로 문자를 발송할 수 있습니다.
       </p>
     </div>
 
@@ -157,7 +169,7 @@
 
   </main>
 
-  <!-- 봉사자 현장 추가 모달창 -->
+  <!-- 봉사자 추가 모달창 -->
   <div id="addModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-2xl p-5 w-full max-w-xs shadow-2xl border border-slate-100 space-y-4">
       <div class="flex items-center justify-between">
@@ -186,7 +198,7 @@
     </div>
   </div>
 
-  <!-- 봉사자 정보 수정 / 삭제 모달창 -->
+  <!-- 봉사자 수정/삭제 모달창 -->
   <div id="editModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white rounded-2xl p-5 w-full max-w-xs shadow-2xl border border-slate-100 space-y-4">
       <div class="flex items-center justify-between">
@@ -224,264 +236,151 @@
   <script>
     let allVolunteers = JSON.parse(localStorage.getItem('v6_secure_volunteers')) || [];
 
-    // 구역별 방문금지 마스터 데이터 (엑셀 완벽 연동)
-    const doNotVisitMap = {
-      "5": ["수성로39안길1 (1층 수족관)", "청수로 3길 70 (2층 벨)"],
-      "6": ["수성로 41길 9 (명품수선)"],
-      "20": ["들안로29길 21 (Osung 명품타운 202)", "수성로38길 34-33 (싸나움)"],
-      "26": ["들안로 180-9 (좌-101)", "들안로 180-9 (우상-201)", "들안로 32길 9-4 (우 1층)"],
-      "30": ["희망로 190-2 (우)", "희망로 29 (상, 하)"],
-      "31": ["들안로 28길 86-4 (대문, 쪽문)", "들안로 28길 86-20 (좌, 우)", "들안로 28길 86-22 (대문)"],
-      "32": ["들안로 32길 78-8 (우성빌라트 201호)"],
-      "33": ["들안로 28길 1607 (좌 -1층)"],
-      "35": ["청수로 97 (2층, 3층 안심내과)"],
-      "37": ["들안로 32길 73-11 (황금제네스 건물 전체)", "희망로 36길 65-9 (대문, 쪽문)"],
-      "38": ["들안로32길 66-4 (상)", "들안로32길 66-15 (상-1층)"],
-      "39": ["동대구로 29길 55 (대구 2층)"],
-      "40": ["희망로 36길 109-18 (상)", "청수로 109-5 (황금천주교회)"],
-      "41": ["희망로 36길 107-16 (상, 하)", "희망로 36길 107-15 (상-우1, 하)"],
-      "42": ["들안로 32길 77-17 (좌)"],
-      "43": ["희망로 36길 107-8 (하)", "희망로 36길 107-10 (좌)", "희망로 36길 107-14 (대문)"],
-      "44": ["들안로 32길 95-8 (좌-101)", "들안로 32길 95-8 (우상-202)"],
-      "45": ["동대구로 29길 54-46 (좌)", "동대구로 29길 54-52 (우)"],
-      "50": ["동대구로 110 (삼성스토어)"],
-      "51": ["청수로 35길 32 (우)", "청수로 35길 38 (우)"],
-      "54": [
-        "청수로45길 41 (306동 505호)", "청수로45길 41 (306동 1001호)", "청수로45길 41 (306동 1205호)",
-        "청수로45길 41 (306동 1305호)", "청수로45길 41 (306동 1401호)", "청수로45길 41 (306동 1403호)",
-        "청수로45길 41 (306동 1405호)", "청수로45길 41 (306동 1407호)", "청수로45길 41 (306동 1409호)",
-        "청수로45길 41 (306동 1501호)", "청수로45길 41 (306동 1503호)", "청수로45길 41 (306동 1505호)",
-        "청수로45길 41 (306동 1507호)", "청수로45길 41 (306동 1509호)", "청수로45길 41 (306동 1102호)",
-        "청수로45길 41 (306동 1506호)"
-      ],
-      "55": [
-        "청수로45길 41 (305동 402호)", "청수로45길 41 (305동 804호)", "청수로45길 41 (305동 1004호)",
-        "청수로45길 41 (305동 1005호)", "청수로45길 41 (305동 1006호)", "청수로45길 41 (305동 1105호)",
-        "청수로45길 41 (305동 1303호)", "청수로45길 41 (305동 1402호)", "청수로45길 41 (305동 1404호)",
-        "청수로45길 41 (305동 1501호)", "청수로45길 41 (305동 1502호)", "청수로45길 41 (305동 1503호)",
-        "청수로45길 41 (305동 1504호)", "청수로45길 41 (305동 706호)", "청수로45길 41 (305동 801호)",
-        "청수로45길 41 (305동 1103호)", "청수로45길 41 (305동 1104호)", "청수로45길 41 (305동 1106호)",
-        "청수로45길 41 (305동 1205호)", "청수로45길 41 (305동 1506호)"
-      ],
-      "56": [
-        "청수로45길 41 (304동 301호)", "청수로45길 41 (304동 605호)", "청수로45길 41 (304동 805호)",
-        "청수로45길 41 (304동 902호)", "청수로45길 41 (304동 903호)", "청수로45길 41 (304동 1202호)",
-        "청수로45길 41 (304동 1203호)", "청수로45길 41 (304동 1204호)", "청수로45길 41 (304동 1301호)",
-        "청수로45길 41 (304동 1305호)", "청수로45길 41 (304동 1404호)", "청수로45길 41 (304동 1503호)",
-        "청수로45길 41 (304동 1505호)", "청수로45길 41 (304동 308호)", "청수로45길 41 (304동 608호)",
-        "청수로45길 41 (304동 708호)", "청수로45길 41 (304동 1007호)", "청수로45길 41 (304동 1106호)",
-        "청수로45길 41 (304동 1406호)", "청수로45길 41 (304동 1506호)", "청수로45길 41 (304동 1508호)"
-      ],
-      "57": [
-        "청수로45길 41 (303동 101호)", "청수로45길 41 (303동 201호)", "청수로45길 41 (303동 402호)",
-        "청수로45길 41 (303동 502호)", "청수로45길 41 (303동 701호)", "청수로45길 41 (303동 1002호)",
-        "청수로45길 41 (303동 1005호)", "청수로45길 41 (303동 1103호)", "청수로45길 41 (303동 1201호)",
-        "청수로45길 41 (303동 1302호)", "청수로45길 41 (303동 1304호)", "청수로45길 41 (303동 1402호)",
-        "청수로45길 41 (303동 1403호)", "청수로45길 41 (303동 1405호)", "청수로45길 41 (303동 1504호)",
-        "청수로45길 41 (303동 1505호)"
-      ],
-      "58": [
-        "청수로45길 41 (302동 405호)", "청수로45길 41 (302동 505호)", "청수로45길 41 (302동 605호)",
-        "청수로45길 41 (302동 703호)", "청수로45길 41 (302동 705호)", "청수로45길 41 (302동 1103호)",
-        "청수로45길 41 (302동 1105호)", "청수로45길 41 (302동 1203호)", "청수로45길 41 (302동 1404호)",
-        "청수로45길 41 (302동 1405호)", "청수로45길 41 (302동 1503호)", "청수로45길 41 (302동 1504호)",
-        "청수로45길 41 (302동 1505호)", "청수로45길 41 (302동 1007호)", "청수로45길 41 (302동 1106호)",
-        "청수로45길 41 (302동 1107호)", "청수로45길 41 (302동 1209호)", "청수로45길 41 (302동 1506호)",
-        "청수로45길 41 (302동 1507호)", "청수로45길 41 (302동 1508호)"
-      ],
-      "59": [
-        "청수로45길 41 (301동 203호)", "청수로45길 41 (301동 601호)", "청수로45길 41 (301동 701호)",
-        "청수로45길 41 (301동 703호)", "청수로45길 41 (301동 704호)", "청수로45길 41 (301동 805호)",
-        "청수로45길 41 (301동 901호)", "청수로45길 41 (301동 904호)", "청수로45길 41 (301동 1001호)",
-        "청수로45길 41 (301동 1002호)", "청수로45길 41 (301동 1003호)", "청수로45길 41 (301동 1105호)",
-        "청수로45길 41 (301동 1205호)", "청수로45길 41 (301동 1303호)", "청수로45길 41 (301동 1305호)",
-        "청수로45길 41 (301동 1403호)", "청수로45길 41 (301동 1405호)", "청수로45길 41 (301동 1501호)",
-        "청수로45길 41 (301동 1502호)", "청수로45길 41 (301동 1503호)", "청수로45길 41 (301동 1504호)",
-        "청수로45길 41 (301동 1505호)", "청수로45길 41 (301동 507호)", "청수로45길 41 (301동 1006호)",
-        "청수로45길 41 (301동 1009호)", "청수로45길 41 (301동 1309호)", "청수로45길 41 (301동 1406호)",
-        "청수로45길 41 (301동 1407호)", "청수로45길 41 (301동 1508호)"
-      ],
-      "63": ["청호로 42길 43 (우)", "청호로 42길 51 (좌)"],
-      "66-2": ["청호로 340 (목련A 3동 207호)", "청호로 340 (목련A 5동 109호)"],
-      "68": ["범어로 20길 13 (우 1층)", "범어로 20길 13-1 (상)"],
-      "69": ["달구벌대로 504길 28 (전체)", "달구벌대로 504길 40 (화산샬렛 101동 302호)"],
-      "70": ["달구벌대로 504길 32 (우)", "달구벌대로 504길 34 (우-2)"],
-      "71": ["범어로 18길 22 (힐스테이트 104동 1601호)", "범어로 18길 22 (힐스테이트 104동 1603호)"],
-      "72": ["범어로 20길 37-14 (우)", "범어로 20길 37-14 (대문안 우202호)"],
-      "74": ["달구벌대로 504길 11-13 (좌)"],
-      "77": ["청호로 85길 30 (다인빌 401호)", "청호로 85안길 3 (102호)", "청호로 85안길 19 (좌)"],
-      "84": ["청호로 85안길 32 (우)", "청호로 85안길 38 (101호)"],
-      "85": ["청호로 85길 58 (하)"],
-      "86": ["달구벌대로 512길 28 (좌, 우)"],
-      "87": ["달구벌대로 512길 14 (하)", "달구벌대로 512길 22-7 (2층)"],
-      "89": ["청호로 95길 3 (상, 하)", "청호로 95길 11 (좌, 우)"],
-      "90": ["청호로 88길 31 (우-201호)"],
-      "91": ["청호로 88길 20 (우)", "청호로 94길 11 (우)"],
-      "93": ["청호로 92길 6 (대문)"],
-      "94": ["청호로 92길 39 (우)", "청호로 92길 43 (우)"],
-      "95": ["청호로 94길 27 (상)", "청호로 94길 41 (우)"],
-      "96": ["청호로 94길 71-6 (우)", "청호로 94길 71-10 (좌)"],
-      "97": ["청호로 96길 38 (좌)", "청호로 96길 40 (좌)"],
-      "98": ["청호로 96안길 11 (우)", "청호로 96안길 13 (우)"],
-      "99": ["청호로 94길 38 (우)"],
-      "100": ["청호로 96안길 60-17 (오성중고교)"],
-      "101": ["달구벌대로 522길 77 (성광타운 101동 602호)"],
-      "102": ["달구벌대로 522길 121-10 (좌)", "달구벌대로 522길 121-12 (우)"],
-      "103": ["달구벌대로 522길 134 (오성골프 3층)"],
-      "105": ["달구벌대로 2626 (SK주유소)"],
-      "106": ["달구벌대로 2652 (1층)"],
-      "108": ["교학로2길 5 (샌드위치집)"],
-      "109": ["달구벌대로 530길 46 (성좌아파트 101동 1003호)"],
-      "110": ["교학로 8길 37 (소선여중)"],
-      "111": ["교학로 12길 10 (대청초등학교)"],
-      "112": ["교학로 12길 41 (혜화여고)"],
-      "113": ["교학로 54 (만촌3동경로당)"],
-      "122(X)": ["교학로11길 43 (한도A 나 503호)", "교학로7길 68 (쪽문 2층)"],
-      "123": ["교학로 11길 63 (하)", "교학로 11길 71 (하)"]
-    };
-
-    const rawZones = [
-      ["1", "동일가스 충전소", "청수로 1 (SK행복충전 동일가스 충전소)", 1],
-      ["2", "중동시장", "수성로 241 (중동시장)", 3],
-      ["3", "수성골드클래스", "수성로 255 (수성골드클래스)", 1],
-      ["4-1", "서울중동아파트 1동", "수성로 246 (서울중동아파트 1동)", 1],
-      ["4-2", "서울중동아파트 2동", "수성로 246 (서울중동아파트 2동)", 1],
-      ["4-3", "서울중동아파트 3동", "수성로 246 (서울중동아파트 3동)", 1],
-      ["4-4", "서울중동아파트 4동", "수성로 246 (서울중동아파트 4동)", 1],
-      ["4-5", "서울중동아파트 5동", "수성로 246 (서울중동아파트 5동)", 1],
-      ["5", "수성뷰웰리버파크", "청수로3길 10 (수성뷰웰리버파크)", 2],
-      ["6", "중동새마을금고", "수성로 240 (중동새마을금고)", 2],
-      ["7", "백궁회초밥", "청수로 15 (백궁회초밥)", 2],
-      ["8", "신우유통 중동1호점", "수성로34길 11 (신우유통 중동1호점)", 2],
-      ["9", "수성구보건소", "수성로 215 (수성구보건소)", 1],
-      ["10", "수성효성해링턴플레이스", "청수로 43 (수성효성해링턴플레이스)", 1],
-      ["11", "롯데슈퍼 수성점", "들안로 163 (롯데슈퍼 수성점)", 1],
-      ["12", "맥도날드 희망DT점", "희망로 180 (맥도날드 희망DT점)", 2],
-      ["13", "아우디", "희망로 190 (아우디)", 1],
-      ["14", "제니스 카매니아", "희망로 196 (제니스 카매니아)", 2],
-      ["15", "GS25 중동베스트점", "수성로30길 5 (GS25 중동베스트점)", 1],
-      ["16-1", "그랜뷰 앞 주택", "수성로38길 52 (그랜뷰 앞 주택)", 1],
-      ["16-2", "그랜뷰(1)", "수성로38길 58 (그랜뷰본동)", 1],
-      ["16-3", "그랜뷰(2)", "수성로38길 58-6 (그랜뷰6동)", 1],
-      ["17", "상록수어린이공원", "들안로29길 34 (뷰티인선)", 2],
-      ["18", "쉐보레 바로서비스", "들안로33길 14 (엠파이어 빌라트 셀프24시 빨래방)", 2],
-      ["19", "효성병원", "수성로 194 (효성병원)", 1],
-      ["20", "중동잔치국수", "수성로38길 34-11 (중동국수)", 2],
-      ["21", "다래식당", "수성로38길 20 (다래식당)", 2],
-      ["22", "송원식당", "청수로9길 34 (송원식당)", 1],
-      ["23", "수성센트럴화성파크드림", "수성로 192 (기프트버거)", 1],
-      ["24", "스타벅스 중동네거리점", "청수로 51 (스타벅스 중동네거리점)", 1],
-      ["25", "맨션5", "들안로25길 10-23 (애플빌라)", 2],
-      ["26", "네비게이션AS센터", "들안로 186 (네비게이션 AS센터)", 2],
-      ["27", "경일약품", "들안로 142 (경일빌딩 경일약품)", 1],
-      ["28", "진영마트", "들안로28길 12 (진영마트)", 2],
-      ["29", "안영희미용실", "청수로 83 (안영희미용실)", 1],
-      ["30", "조은마트", "희망로 200 (조은마트)", 2],
-      ["31", "황금어린이공원", "희망로36길 32 (황금2동경로당)", 2],
-      ["32", "해맑은어린이집", "들안로32길 17 (해맑은어린이집)", 2],
-      ["33", "아름빌플러스", "청수로25길 66-17 (대영광고)", 2],
-      ["34", "대경놀이터", "청수로25길 90 (대경어린이공원)", 1],
-      ["35", "투썸 황금점", "청수로25길 83 (골든파크빌)", 1],
-      ["36", "안동국시", "희망로 216 (안동국시)", 1],
-      ["37", "살롱드B", "들안로32길 73 (나폴리 살롱드B)", 1],
-      ["38", "이마트24", "들안로28길 24-43 (윤슬커피)", 1],
-      ["39", "델타석유", "동대구로29길 54-41 (델타석유(수산석유))", 1],
-      ["40", "황금천주교회", "청수로 109-5 (황금성당)", 1],
-      ["41", "예당피부관리", "희망로36길 106 (예당피부관리)", 2],
-      ["42", "머리이야기", "들안로32길 77 (머리이야기)", 2],
-      ["43", "아름빌", "들안로32길 78 (아름빌)", 4],
-      ["44", "황금인테리어", "들안로32길 96 (쿠로리페어샵)", 2],
-      ["45", "곰막창", "동대구로29길 54-35 (막창)", 1],
-      ["46", "코리아나모텔", "동대구로25길 34 (코리아나모텔)", 1],
-      ["47", "KFC", "동대구로 155 (KFC)", 2],
-      ["48", "대구은행 황금네거리", "동대구로 111 (대구은행)", 3],
-      ["49", "어린이세상", "동대구로 132 (BMW 매장)", 1],
-      ["50", "삼성스토어", "동대구로 110 (삼성스토어)", 1],
-      ["51", "수성케이블", "청수로31길 2-7 (주택벨 좌)", 2],
-      ["52", "캐슬5단지", "청수로 214 (캐슬5단지상가 1층 CU)", 1],
-      ["53", "3주공 앞 상가/1단지 상가", "청수로45길 163-14 (1층 야채가게)", 3],
-      ["54", "3주공 - 306동", "청수로45길 41 (306동)", 2],
-      ["55", "3주공 - 305동", "청수로45길 41 (305동)", 2],
-      ["56", "3주공 - 304동", "청수로45길 41 (304동 101)", 2],
-      ["57", "3주공 - 303동", "청수로45길 41 (303동 101)", 2],
-      ["58", "3주공 - 302동", "청수로45길 41 (302동 103)", 1],
-      ["59", "3주공 - 301동", "청수로45길 41 (301동 101)", 1],
-      ["60", "캐슬골드파크 상가", "청수로45길 32 (1층 카페 봄봄)", 4],
-      ["61", "캐슬골드파크 뒷시장", "청수로45길 48 (동의약초건강원)", 3],
-      ["62", "캐슬4단지/박물관", "청호로 321 (박물관 로비)", 2],
-      ["63", "황금힐스테이트", "청수로 256-3 (힐스테이트상가2 1층 현대탑부동산)", 2],
-      ["64", "우방신천지타운/하이츠", "청호로46길 16 (1층 호랭마늘통닭)", 2],
-      ["65", "경북고/우방타운2차", "청호로 286 (대구황금유치원)", 2],
-      ["66-1", "목련아파트(1)", "청호로 350 (동도중학교)", 3],
-      ["66-2", "목련아파트(2)", "청호로 340 (목련A 3동(1) 101)", 3],
-      ["67", "선스포츠프라자", "범어로 9 (선스포츠프라자 건물)", 2],
-      ["68", "명문빌라", "범어로 22 (대건과일)", 3],
-      ["69", "화산샬렛아파트", "달구벌대로504길 40 (경신탁구클럽)", 1],
-      ["70", "경신중고등학교", "달구벌대로504길 30 (1층)", 2],
-      ["71", "범어힐스테이트", "범어로18길 22 (힐스테이트상가)", 3],
-      ["72", "헤어두툼", "범어로 88 (한촌설렁탕)", 3],
-      ["73", "안심약국", "달구벌대로 2506 (LG유플러스)", 2],
-      ["74", "지성학원 범어점", "달구벌대로 2520 (1층 T월드)", 2],
-      ["75", "남부DC마트", "범어로20길 78 (대문벨 좌)", 4],
-      ["76", "경북아파트", "달구벌대로504길 37 (경북B 상가 아파트 관리실)", 4],
-      ["77", "금봉빌라", "청호로85길 30 (다인빌 ODD디자인)", 3],
-      ["78", "가든주유소", "청호로85길 9 (1층 히스카페)", 1],
-      ["79", "빌리브범어", "청호로 418 (빌리브범어 상가 엄지공인중개사)", 1],
-      ["80", "장원맨션", "청호로 370 (1층 상가 최선부동산)", 1],
-      ["81", "우방청솔맨션", "청호로84길 24 (서광빌딩)", 1],
-      ["82", "범어삼성쉐르빌", "청호로 426 (쉐르빌상가 쉐르빌 경비실)", 1],
-      ["83", "범어효성해링턴플레이스", "청호로 433 (해링턴상가 해링턴플레이스 경비실)", 1],
-      ["84", "신통외국어학원", "청호로85안길 36 (엘도라도)", 2],
-      ["85", "하이카프라자", "청호로 453 (하이카프라자)", 2],
-      ["86", "빌리브범어120", "달구벌대로512길 10 (101호)", 1],
-      ["87", "남부상가시장", "달구벌대로512길 8 (1층 빈 상가)", 1],
-      ["88", "아크로타워", "달구벌대로 2570 (아크로타워1층 늘숲심리상담)", 1],
-      ["89", "아크로타워부동산", "청호로95길 9 (아크로타워부동산)", 2],
-      ["90", "범어라온프라이빗", "청호로88길 9 (라온프라이빗2차 상가)", 1],
+    // [최신 반영] 구역카드.xlsx 기반 131개 전체 구역 데이터
+    const defaultRawZones = [
+      ["1", "동일가스 충전소", "청수로 1", 1],
+      ["2", "중동시장", "청수로 23", 3],
+      ["3", "수성골드클래스", "수성로35길 50", 1],
+      ["4-1", "서울중동아파트 1동", "신천동로 216", 1],
+      ["4-2", "서울중동아파트 2동", "신천동로 216", 1],
+      ["4-3", "서울중동아파트 3동", "신천동로 216", 1],
+      ["4-4", "서울중동아파트 4동", "신천동로 216", 1],
+      ["4-5", "서울중동아파트 5동", "신천동로 216", 1],
+      ["5", "수성뷰웰리버파크", "수성로41길 41", 2],
+      ["6", "중동새마을금고", "수성로 211", 2],
+      ["7", "백궁회초밥", "수성로 46길 10", 2],
+      ["8", "신우유통 중동1호점", "수성로 41길 56", 2],
+      ["9", "수성구보건소", "수성로 43길 19", 1],
+      ["10", "수성효성해링턴플레이스", "희망로20길 10", 1],
+      ["11", "롯데슈퍼 수성점", "희망로 124", 1],
+      ["12", "맥도날드 희망DT점", "희망로 180", 2],
+      ["13", "아우디", "희망로 190", 1],
+      ["14", "제니스 카매니아", "희망로 196", 2],
+      ["15", "GS25 중동베스트점", "수성로30길 5", 1],
+      ["16-1", "그랜뷰 앞 주택", "들안로29길 46-19", 1],
+      ["16-2", "그랜뷰(1)", "수성로38길 58", 1],
+      ["16-3", "그랜뷰(2)", "수성로38길 58-6", 1],
+      ["17", "상록수어린이공원", "들안로 29길 34", 2],
+      ["18", "쉐보레 바로서비스", "들안로33길 14", 2],
+      ["19", "효성병원", "수성로 194", 1],
+      ["20", "중동잔치국수", "수성로38길 34-11", 2],
+      ["21", "다래식당", "수성로 38길 20", 2],
+      ["22", "송원식당", "청수로 9길 34", 1],
+      ["23", "수성센트럴화성파크드림", "수성로 192", 1],
+      ["24", "스타벅스 중동네거리점", "청수로 51", 1],
+      ["25", "맨션5", "들안로25길 10-23", 2],
+      ["26", "네비게이션AS센터", "들안로 186", 2],
+      ["27", "경일약품", "들안로 142", 1],
+      ["28", "진영마트", "들안로28길 12", 2],
+      ["29", "안영희미용실", "청수로 83", 1],
+      ["30", "조은마트", "희망로 200", 2],
+      ["31", "황금어린이공원", "희망로36길 32", 2],
+      ["32", "해맑은어린이집", "들안로32길 17", 2],
+      ["33", "아름빌플러스", "청수로25길 66-17", 2],
+      ["34", "대경놀이터", "청수로25길 90", 1],
+      ["35", "투썸 황금점", "청수로25길 83", 1],
+      ["36", "안동국시", "희망로 216", 1],
+      ["37", "살롱드B", "들안로32길 73", 1],
+      ["38", "이마트24", "들안로28길 24-43", 1],
+      ["39", "델타석유", "동대구로29길 54-41", 1],
+      ["40", "황금천주교회", "청수로 109-5", 1],
+      ["41", "예당피부관리", "희망로36길 106", 2],
+      ["42", "머리이야기", "들안로32길 77", 2],
+      ["43", "아름빌", "들안로32길 78", 4],
+      ["44", "황금인테리어", "들안로32길 96", 2],
+      ["45", "곰막창", "동대구로29길 54-35", 1],
+      ["46", "코리아나모텔", "동대구로25길 34", 1],
+      ["47", "KFC", "동대구로 155", 2],
+      ["48", "대구은행 황금네거리", "동대구로 111", 3],
+      ["49", "어린이세상", "동대구로 132", 1],
+      ["50", "삼성스토어", "동대구로 110", 1],
+      ["51", "수성케이블", "청수로31길 2-7", 2],
+      ["52", "캐슬5단지", "청수로 214", 1],
+      ["53", "3주공 앞 상가/1단지 상가", "청수로45길 163-14", 3],
+      ["54", "3주공 - 306동", "청수로45길 41", 2],
+      ["55", "3주공 - 305동", "청수로45길 41", 2],
+      ["56", "3주공 - 304동", "청수로45길 41", 2],
+      ["57", "3주공 - 303동", "청수로45길 41", 2],
+      ["58", "3주공 - 302동", "청수로45길 41", 1],
+      ["59", "3주공 - 301동", "청수로45길 41", 1],
+      ["60", "캐슬골드파크 상가", "청수로45길 32", 4],
+      ["61", "캐슬골드파크 뒷시장", "청수로45길 48", 3],
+      ["62", "캐슬4단지/박물관", "청호로 321", 2],
+      ["63", "황금힐스테이트", "청수로 256-3", 2],
+      ["64", "우방신천지타운/하이츠", "청호로46길 16", 2],
+      ["65", "경북고/우방타운2차", "청호로 286", 2],
+      ["66-1", "목련아파트(1)", "청호로 350", 3],
+      ["66-2", "목련아파트(2)", "청호로 340", 3],
+      ["67", "선스포츠프라자", "범어로 9", 2],
+      ["68", "명문빌라", "범어로 22", 3],
+      ["69", "화산샬렛아파트", "달구벌대로504길 40", 1],
+      ["70", "경신중고등학교", "달구벌대로504길 30", 2],
+      ["71", "범어힐스테이트", "범어로18길 22", 3],
+      ["72", "헤어두툼", "범어로 88", 3],
+      ["73", "안심약국", "달구벌대로 2506", 2],
+      ["74", "지성학원 범어점", "달구벌대로 2520", 2],
+      ["75", "남부DC마트", "범어로20길 78", 4],
+      ["76", "경북아파트", "달구벌대로504길 37", 4],
+      ["77", "금봉빌라", "청호로85길 30", 3],
+      ["78", "가든주유소", "청호로85길 9", 1],
+      ["79", "빌리브범어", "청호로 418", 1],
+      ["80", "장원맨션", "청호로 370", 1],
+      ["81", "우방청솔맨션", "청호로84길 24", 1],
+      ["82", "범어삼성쉐르빌", "청호로 426", 1],
+      ["83", "범어효성해링턴플레이스", "청호로 433", 1],
+      ["84", "신통외국어학원", "청호로85안길 36", 2],
+      ["85", "하이카프라자", "청호로 453", 2],
+      ["86", "빌리브범어120", "달구벌대로512길 10", 1],
+      ["87", "남부상가시장", "달구벌대로512길 8", 1],
+      ["88", "아크로타워", "달구벌대로 2570", 1],
+      ["89", "아크로타워부동산", "청호로95길 9", 2],
+      ["90", "범어라온프라이빗", "청호로88길 9", 1],
       ["91", "그린힐골프연습장", "청호로88길 24", 2],
-      ["92", "덕일어린이집", "청호로92길 26 (덕일어린이집)", 2],
-      ["93", "꼬 치킨", "청호로92길 14 (꼬 치킨)", 2],
-      ["94", "범양맨션", "청호로92길 35 (힐튼빌라 경비실)", 2],
+      ["92", "덕일어린이집", "청호로92길 26", 2],
+      ["93", "꼬 치킨", "청호로92길 14", 2],
+      ["94", "범양맨션", "청호로92길 35", 2],
       ["95", "범어브릿지부동산", "청호로94길 31", 2],
-      ["96", "롯데리아", "청호로 498 (메가커피)", 1],
-      ["97", "동진아파트", "청호로96길 12 (동진아파트 상가)", 2],
-      ["98", "참기름", "청호로96안길 1 (참기름 자연농산)", 2],
-      ["99", "만촌교회", "청호로94길 30 (만촌교회)", 2],
+      ["96", "롯데리아", "청호로 498", 1],
+      ["97", "동진아파트", "청호로96길 12", 2],
+      ["98", "참기름", "청호로96안길 1", 2],
+      ["99", "만촌교회", "청호로94길 30", 2],
       ["100", "오성중고교", "청호로96안길 60-17", 3],
-      ["101", "성광타운", "달구벌대로522길 77 (성광타운 101)", 2],
-      ["102", "오성골프 앞 주택", "달구벌대로522길 121-10 (좌)", 2],
-      ["103", "오성골프연습장", "달구벌대로522길 134 (오성골프 3층-손님 골프)", 1],
-      ["104", "버거킹 대구만촌점", "달구벌대로 2612 (마들렌 만촌네거리점)", 2],
-      ["105", "수성대학교", "달구벌대로 2626 (SK주유소-사무실)", 2],
-      ["106", "만촌3동주민센터", "달구벌대로 2652 (1층)", 2],
-      ["107", "만촌119안전센터", "달구벌대로 2668 (지하 조계종대성사)", 1],
-      ["108", "만촌시장", "교학로2길 5 (샌드위치집)", 1],
-      ["109", "성좌아파트", "달구벌대로530길 46 (성좌아파트 관리실)", 2],
-      ["110", "소선여중", "교학로8길 37 (소선여중)", 2],
+      ["101", "성광타운", "달구벌대로522길 77", 2],
+      ["102", "오성골프 앞 주택", "달구벌대로522길 121-10", 2],
+      ["103", "오성골프연습장", "달구벌대로522길 134", 1],
+      ["104", "버거킹 대구만촌점", "달구벌대로 2612", 2],
+      ["105", "수성대학교", "달구벌대로 2626", 2],
+      ["106", "만촌3동주민센터", "달구벌대로 2652", 2],
+      ["107", "만촌119안전센터", "달구벌대로 2668", 1],
+      ["108", "만촌시장", "교학로2길 5", 1],
+      ["109", "성좌아파트", "달구벌대로530길 46", 2],
+      ["110", "소선여중", "교학로8길 37", 2],
       ["111", "대청초등학교", "교학로12길 10", 1],
       ["112", "혜화여고", "교학로12길 41", 2],
       ["113", "만촌3동경로당", "교학로 54", 2],
-      ["114", "만촌자이르네", "교학로19길 19 (만촌자이르네)", 1],
+      ["114", "만촌자이르네", "교학로19길 19", 1],
       ["115", "산장맨션", "교학로 111", 1],
-      ["116", "만촌삼정그린코아", "교학로 65 (삼정그린상가)", 1],
+      ["116", "만촌삼정그린코아", "교학로 65", 1],
       ["117(X)", "뉴대구어린이집(재개발)", "재개발 - 이주 완료", 2],
       ["118(X)", "새마을금고(재개발)", "재개발 - 이주 완료", 2],
-      ["119", "만촌화성파크드림3차", "교학로 13 (화성3차상가)", 1],
-      ["120", "대륜중고/우방팔레스", "달구벌대로 2692 (파크드림2차)", 1],
-      ["121(X)", "페도라안경(재개발)", "교학로11길 41 (재개발)", 3],
-      ["122(X)", "한도아파트(재개발)", "교학로11길 43 (한도A 가 재개발)", 4],
-      ["123", "만촌우방2차", "교학로11길 73 (만촌신시장)", 2],
-      ["124", "만촌우방1차", "교학로11길 46 (만촌우방1차)", 2]
+      ["119", "만촌화성파크드림3차", "교학로 13", 1],
+      ["120", "대륜중고/우방팔레스", "달구벌대로 2692", 1],
+      ["121(X)", "페도라안경(재개발)", "교학로11길 41", 3],
+      ["122(X)", "한도아파트(재개발)", "교학로11길 43", 4],
+      ["123", "만촌우방2차", "교학로11길 73", 2],
+      ["124", "만촌우방1차", "교학로11길 46", 2]
     ];
 
-    let zones = rawZones.map((item, idx) => ({ 
+    let customZones = JSON.parse(localStorage.getItem('v6_custom_zones'));
+    let activeRawZones = customZones || defaultRawZones;
+
+    let zones = activeRawZones.map((item, idx) => ({ 
       id: idx + 1, 
-      no: item[0], 
-      name: item[1],
-      address: item[2],
-      teams: item[3] || 1,
-      dnvList: doNotVisitMap[item[0]] || [],
-      isDev: item[0].includes('(X)') || item[2].includes('재개발'),
+      no: String(item[0]), 
+      name: String(item[1]), 
+      address: String(item[2] || ''), 
+      teams: Number(item[3]) || 1,
+      isDev: String(item[0]).includes('(X)') || String(item[2] || '').includes('재개발'),
       assignedVols: []
     }));
 
@@ -495,7 +394,7 @@
       }
     });
 
-    let selectedZone = zones[0];
+    let selectedZone = zones[0] || null;
     let filteredPool = [...allVolunteers];
     let filteredZones = [...zones];
 
@@ -512,12 +411,143 @@
     function init() {
       document.getElementById('totalPoolCount').innerText = allVolunteers.length;
       document.getElementById('zoneCountDisplay').innerText = zones.length;
+      if (selectedZone) {
+        document.getElementById('selectedZoneLabel').innerText = `${selectedZone.no}호 (권장 ${selectedZone.teams}팀)`;
+      }
       renderAttendancePool();
       renderTodayVolGrid();
       renderZones();
       renderAssignedBoard();
     }
 
+    // 구역 엑셀 파일 업로드
+    function handleZoneExcelUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+
+          if (!rows || rows.length === 0) {
+            alert('엑셀 파일에 데이터가 없습니다.');
+            return;
+          }
+
+          let headerRowIdx = -1;
+          let noColIdx = -1;
+          let nameColIdx = -1;
+          let addrColIdx = -1;
+          let teamColIdx = -1;
+
+          for (let r = 0; r < Math.min(rows.length, 10); r++) {
+            const row = rows[r];
+            if (!Array.isArray(row)) continue;
+            for (let c = 0; c < row.length; c++) {
+              const cellStr = String(row[c]).trim().replace(/\s+/g, '');
+              if (cellStr.includes('카드번호') || cellStr.includes('구역번호') || cellStr === '번호') {
+                noColIdx = c;
+              }
+              if (cellStr.includes('구역이름') || cellStr.includes('구역명') || cellStr === '명칭') {
+                nameColIdx = c;
+              }
+              if (cellStr.includes('주소') || cellStr.includes('도로명') || cellStr.includes('위치')) {
+                addrColIdx = c;
+              }
+              if (cellStr.includes('팀수') || cellStr.includes('팀')) {
+                teamColIdx = c;
+              }
+            }
+            if (noColIdx !== -1 && nameColIdx !== -1) {
+              headerRowIdx = r;
+              break;
+            }
+          }
+
+          if (headerRowIdx === -1) {
+            alert("엑셀에서 구역 번호 또는 구역 이름을 찾을 수 없습니다.");
+            return;
+          }
+
+          let newRawZones = [];
+          for (let r = headerRowIdx + 1; r < rows.length; r++) {
+            const row = rows[r];
+            if (!row || !Array.isArray(row)) continue;
+
+            let zNo = String(row[noColIdx] || '').trim();
+            let zName = String(row[nameColIdx] || '').trim();
+            let zAddr = addrColIdx !== -1 ? String(row[addrColIdx] || '').trim() : '';
+            let zTeams = teamColIdx !== -1 ? Number(row[teamColIdx]) || 1 : 1;
+
+            if (!zNo || !zName || zNo === '카드번호' || zNo === '구역번호') continue;
+
+            newRawZones.push([zNo, zName, zAddr, zTeams]);
+          }
+
+          if (newRawZones.length === 0) {
+            alert("불러올 구역 데이터가 없습니다.");
+            return;
+          }
+
+          localStorage.setItem('v6_custom_zones', JSON.stringify(newRawZones));
+          localStorage.removeItem('v6_zone_assignments');
+
+          zones = newRawZones.map((item, idx) => ({
+            id: idx + 1,
+            no: String(item[0]),
+            name: String(item[1]),
+            address: String(item[2] || ''),
+            teams: Number(item[3]) || 1,
+            isDev: String(item[0]).includes('(X)') || String(item[2] || '').includes('재개발'),
+            assignedVols: []
+          }));
+
+          filteredZones = [...zones];
+          selectedZone = zones[0] || null;
+          document.getElementById('zoneCountDisplay').innerText = zones.length;
+
+          renderTodayVolGrid();
+          renderZones();
+          renderAssignedBoard();
+          alert(`새로운 구역 ${zones.length}개를 성공적으로 불러왔습니다!`);
+        } catch (err) {
+          alert('구역 엑셀 파일을 읽는 중 오류가 발생했습니다: ' + err.message);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+      event.target.value = '';
+    }
+
+    function resetZoneData() {
+      if (confirm('엑셀로 등록한 구역을 지우고 기본 구역 목록으로 복원하시겠습니까?')) {
+        localStorage.removeItem('v6_custom_zones');
+        localStorage.removeItem('v6_zone_assignments');
+        zones = defaultRawZones.map((item, idx) => ({
+          id: idx + 1,
+          no: String(item[0]),
+          name: String(item[1]),
+          address: String(item[2] || ''),
+          teams: Number(item[3]) || 1,
+          isDev: String(item[0]).includes('(X)') || String(item[2] || '').includes('재개발'),
+          assignedVols: []
+        }));
+        filteredZones = [...zones];
+        selectedZone = zones[0] || null;
+        document.getElementById('zoneCountDisplay').innerText = zones.length;
+
+        renderTodayVolGrid();
+        renderZones();
+        renderAssignedBoard();
+        alert('기본 구역으로 복원되었습니다.');
+      }
+    }
+
+    // 봉사자 엑셀 파일 업로드
     function handleExcelUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -529,7 +559,6 @@
           const workbook = XLSX.read(data, { type: 'array' });
           const firstSheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[firstSheetName];
-          
           const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
 
           if (!rows || rows.length === 0) {
@@ -558,7 +587,7 @@
           }
 
           if (headerRowIdx === -1 || nameColIdx === -1) {
-            alert("엑셀에서 '이름' 열을 찾을 수 없습니다.\n엑셀 표의 열 제목에 '이름' 또는 '성명'이 있는지 확인해 주세요.");
+            alert("엑셀에서 '이름' 열을 찾을 수 없습니다.");
             return;
           }
 
@@ -577,11 +606,6 @@
               name: name,
               phone: phone
             });
-          }
-
-          if (newVolunteers.length === 0) {
-            alert("불러올 봉사자 명단 데이터가 없습니다.");
-            return;
           }
 
           allVolunteers = newVolunteers;
@@ -890,21 +914,17 @@
       }
     }
 
-    // 3단계: 구역 리스트 (방문금지 건수 뱃지 표기)
     function renderZones() {
       const container = document.getElementById('zoneList');
       container.innerHTML = filteredZones.map(z => {
-        const isSel = z.id === selectedZone.id;
+        const isSel = selectedZone && z.id === selectedZone.id;
         const count = z.assignedVols.length;
-        const dnvCount = z.dnvList.length;
-
         return `
           <button type="button" onclick="selectZone(${z.id})" class="p-2 rounded-xl border text-left transition flex flex-col justify-between min-h-[64px] min-w-0 ${isSel ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-blue-500/20' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'}">
             <div class="flex items-center justify-between w-full">
               <div class="flex items-center gap-1 min-w-0">
                 <span class="f-sub px-1 py-0.2 rounded font-mono font-bold shrink-0 ${isSel ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-800'}">${z.no}호</span>
                 <span class="f-badge font-bold px-1 py-0.2 rounded shrink-0 ${isSel ? 'bg-blue-600/80 text-white' : 'bg-amber-100 text-amber-800'}">${z.teams}팀</span>
-                ${dnvCount > 0 ? `<span class="f-badge font-bold px-1 py-0.2 rounded bg-rose-50 text-rose-600 border border-rose-200 shrink-0">🚫금지 ${dnvCount}</span>` : ''}
               </div>
               <div class="flex items-center gap-0.5 shrink-0 ml-1">
                 ${count > 0 ? `<span class="f-badge px-1 py-0.2 rounded-full bg-blue-100 text-blue-700 font-bold shrink-0">${count}명</span>` : ''}
@@ -928,12 +948,17 @@
 
     function selectZone(id) {
       selectedZone = zones.find(z => z.id === id);
-      const dnvInfo = selectedZone.dnvList.length > 0 ? ` / 🚫금지 ${selectedZone.dnvList.length}건` : '';
-      document.getElementById('selectedZoneLabel').innerText = `${selectedZone.no}호 (권장 ${selectedZone.teams}팀${dnvInfo})`;
+      if (selectedZone) {
+        document.getElementById('selectedZoneLabel').innerText = `${selectedZone.no}호 (권장 ${selectedZone.teams}팀)`;
+      }
       renderZones();
     }
 
     function confirmMultipleAssignment() {
+      if (!selectedZone) {
+        alert('배정할 구역카드를 먼저 선택해 주세요.');
+        return;
+      }
       if (selectedVolIds.size === 0) {
         alert('오늘 참여자 중 배정할 봉사자를 1명 이상 선택해 주세요.');
         return;
@@ -979,11 +1004,9 @@
       renderZones();
       renderAssignedBoard();
 
-      const dnvAlert = selectedZone.dnvList.length > 0 ? `\n※ 주의: 방문금지 주소 ${selectedZone.dnvList.length}건 포함` : '';
-      alert(`[배정 완료]\n${selectedZone.no}호 (${selectedZone.name})\n👉 ${addedNames.join(', ')} (${addedNames.length}명) 등록 완료!${dnvAlert}`);
+      alert(`[배정 완료]\n${selectedZone.no}호 (${selectedZone.name})\n👉 ${addedNames.join(', ')} (${addedNames.length}명) 등록 완료!`);
     }
 
-    // 4단계: 실시간 배정 현황판 (방문금지 안내 표기)
     function renderAssignedBoard() {
       const container = document.getElementById('assignedBoard');
       const activeZones = zones.filter(z => z.assignedVols.length > 0);
@@ -1001,65 +1024,52 @@
         return;
       }
 
-      container.innerHTML = activeZones.map(z => {
-        const dnvCount = z.dnvList.length;
-
-        return `
-          <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
-            <div class="flex items-center justify-between border-b border-slate-200/80 pb-1.5">
-              <div class="flex flex-col min-w-0">
-                <div class="flex items-center gap-1">
-                  <span class="px-1.5 py-0.2 bg-slate-900 text-white font-mono font-bold rounded f-sub">${z.no}호</span>
-                  <span class="f-body font-bold text-slate-800 truncate">${z.name}</span>
-                  <span class="f-badge font-bold px-1 rounded bg-amber-100 text-amber-800 shrink-0">${z.teams}팀</span>
-                  ${dnvCount > 0 ? `<span class="f-badge font-bold px-1 rounded bg-rose-100 text-rose-700 shrink-0">🚫금지 ${dnvCount}건</span>` : ''}
-                </div>
-                <span class="f-badge text-slate-500 mt-0.5 truncate">📍 ${z.address}</span>
+      container.innerHTML = activeZones.map(z => `
+        <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+          <div class="flex items-center justify-between border-b border-slate-200/80 pb-1.5">
+            <div class="flex flex-col min-w-0">
+              <div class="flex items-center gap-1">
+                <span class="px-1.5 py-0.2 bg-slate-900 text-white font-mono font-bold rounded f-sub">${z.no}호</span>
+                <span class="f-body font-bold text-slate-800 truncate">${z.name}</span>
+                <span class="f-badge font-bold px-1 rounded bg-amber-100 text-amber-800 shrink-0">${z.teams}팀</span>
               </div>
-              <span class="f-badge font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full border border-blue-100 shrink-0 ml-1">${z.assignedVols.length}명</span>
+              <span class="f-badge text-slate-500 mt-0.5 truncate">📍 ${z.address}</span>
             </div>
-
-            <div class="space-y-1 pt-0.5">
-              ${z.assignedVols.map(v => `
-                <div class="flex items-center justify-between bg-white p-1.5 rounded-lg border border-slate-100">
-                  <div class="flex items-center gap-1 min-w-0">
-                    <span class="font-bold text-slate-800 f-body truncate">${v.name}</span>
-                    <span class="text-slate-400 f-badge font-mono shrink-0">${v.phone ? `(${v.phone.slice(-4)})` : '(번호없음)'}</span>
-                  </div>
-                  <div class="flex items-center gap-1 shrink-0 ml-1">
-                    <button onclick="sendIndividualSMS('${v.phone || ''}', '${z.no}', '${z.name}', '${z.address}')" class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded f-sub font-bold border border-emerald-200 flex items-center gap-0.5 transition">
-                      <i data-lucide="message-square" class="w-3 h-3"></i>
-                      <span>문자</span>
-                    </button>
-                    <button onclick="removeVolunteerFromZone(${z.id}, ${v.id})" class="px-1.5 py-0.5 text-slate-400 hover:text-rose-500 rounded f-sub transition">
-                      삭제
-                    </button>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
+            <span class="f-badge font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full border border-blue-100 shrink-0 ml-1">${z.assignedVols.length}명</span>
           </div>
-        `;
-      }).join('');
+
+          <div class="space-y-1 pt-0.5">
+            ${z.assignedVols.map(v => `
+              <div class="flex items-center justify-between bg-white p-1.5 rounded-lg border border-slate-100">
+                <div class="flex items-center gap-1 min-w-0">
+                  <span class="font-bold text-slate-800 f-body truncate">${v.name}</span>
+                  <span class="text-slate-400 f-badge font-mono shrink-0">${v.phone ? `(${v.phone.slice(-4)})` : '(번호없음)'}</span>
+                </div>
+                <div class="flex items-center gap-1 shrink-0 ml-1">
+                  <button onclick="sendIndividualSMS('${v.phone || ''}', '${z.no}', '${z.name}', '${z.address}')" class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded f-sub font-bold border border-emerald-200 flex items-center gap-0.5 transition">
+                    <i data-lucide="message-square" class="w-3 h-3"></i>
+                    <span>문자</span>
+                  </button>
+                  <button onclick="removeVolunteerFromZone(${z.id}, ${v.id})" class="px-1.5 py-0.5 text-slate-400 hover:text-rose-500 rounded f-sub transition">
+                    삭제
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
 
       lucide.createIcons();
     }
 
-    // 방문금지 목록이 포함된 최종 문자 발송 함수
     function sendIndividualSMS(phone, zoneNo, zoneName, fullAddr) {
       const cleanPhone = phone.replace(/[^0-9]/g, '');
-      const dnvItems = doNotVisitMap[zoneNo] || [];
-      
-      let dnvText = "";
-      if (dnvItems.length > 0) {
-        dnvText = "\n\n⚠️ [방문 금지 목록]\n" + dnvItems.map(item => `- ${item}`).join('\n');
-      }
-
       const messageBody = `[봉사 구역 배정 안내]
 안녕하세요! 오늘 배정된 봉사 구역 안내드립니다.
 
 * 배정 구역: ${zoneNo}호 - ${zoneName}
-* 현장 주소: ${fullAddr}${dnvText}
+* 현장 주소: ${fullAddr}
 
 오늘도 즐거운 봉사 되세요~`;
 
@@ -1075,11 +1085,13 @@
 
     function removeVolunteerFromZone(zoneId, volId) {
       const z = zones.find(item => item.id === zoneId);
-      z.assignedVols = z.assignedVols.filter(v => v.id !== volId);
-      saveAssignments();
-      renderTodayVolGrid();
-      renderZones();
-      renderAssignedBoard();
+      if (z) {
+        z.assignedVols = z.assignedVols.filter(v => v.id !== volId);
+        saveAssignments();
+        renderTodayVolGrid();
+        renderZones();
+        renderAssignedBoard();
+      }
     }
 
     function resetAllAssignments() {
