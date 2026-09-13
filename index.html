@@ -90,7 +90,7 @@
       <p class="f-badge text-slate-400 text-center">* 터치: 출석 등록 / ⚙️ 아이콘: 정보 수정·삭제</p>
     </section>
 
-    <!-- 2단계: 오늘 참여자 중 배정할 인원 다중 선택 (3열 그리드로 수정됨) -->
+    <!-- 2단계: 오늘 참여자 중 배정할 인원 다중 선택 (3열 그리드) -->
     <section class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
       <div class="flex items-center justify-between">
         <label class="f-title font-bold text-slate-800 flex items-center gap-1.5">
@@ -109,12 +109,11 @@
         </div>
       </div>
 
-      <!-- 3열 그리드 (grid-cols-3) -->
       <div class="grid grid-cols-3 gap-1.5 max-h-48 overflow-y-auto pr-0.5 no-scrollbar" id="todayVolGrid"></div>
       <p class="f-badge text-slate-400 text-center">* 이미 배정된 참여자도 터치 선택 후 [배정해제]할 수 있습니다.</p>
     </section>
 
-    <!-- 3단계: 구역카드 선택 (유동형 2열 그리드 + 팀 수) -->
+    <!-- 3단계: 구역카드 선택 (유동형 2열 그리드 + 팀 수 + 방문금지 표기) -->
     <section class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
       <div class="flex items-center justify-between">
         <label class="f-title font-bold text-slate-800 flex items-center gap-1.5">
@@ -126,7 +125,7 @@
 
       <div class="relative">
         <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5"></i>
-        <input type="text" id="zoneSearchInput" oninput="filterZones()" placeholder="구역 번호나 명칭 검색 (예: 36, 안동국시)" class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl f-body focus:outline-none focus:border-emerald-500">
+        <input type="text" id="zoneSearchInput" oninput="filterZones()" placeholder="구역 번호나 명칭 검색 (예: 20, 중동잔치국수)" class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl f-body focus:outline-none focus:border-emerald-500">
       </div>
 
       <div class="grid grid-cols-2 gap-1.5 max-h-64 overflow-y-auto pr-0.5 no-scrollbar" id="zoneList"></div>
@@ -139,7 +138,7 @@
         <span id="assignBtnText">선택한 인원 배정 확정하기</span>
       </button>
       <p class="f-badge text-slate-400 text-center mt-1.5">
-        * 배정 완료 후 아래 현황판에서 개별적으로 문자를 발송할 수 있습니다.
+        * 배정 완료 후 아래 현황판에서 문자 발송 시 방문금지 목록이 함께 포함됩니다.
       </p>
     </div>
 
@@ -224,6 +223,122 @@
 
   <script>
     let allVolunteers = JSON.parse(localStorage.getItem('v6_secure_volunteers')) || [];
+
+    // 구역별 방문금지 마스터 데이터 (엑셀 완벽 연동)
+    const doNotVisitMap = {
+      "5": ["수성로39안길1 (1층 수족관)", "청수로 3길 70 (2층 벨)"],
+      "6": ["수성로 41길 9 (명품수선)"],
+      "20": ["들안로29길 21 (Osung 명품타운 202)", "수성로38길 34-33 (싸나움)"],
+      "26": ["들안로 180-9 (좌-101)", "들안로 180-9 (우상-201)", "들안로 32길 9-4 (우 1층)"],
+      "30": ["희망로 190-2 (우)", "희망로 29 (상, 하)"],
+      "31": ["들안로 28길 86-4 (대문, 쪽문)", "들안로 28길 86-20 (좌, 우)", "들안로 28길 86-22 (대문)"],
+      "32": ["들안로 32길 78-8 (우성빌라트 201호)"],
+      "33": ["들안로 28길 1607 (좌 -1층)"],
+      "35": ["청수로 97 (2층, 3층 안심내과)"],
+      "37": ["들안로 32길 73-11 (황금제네스 건물 전체)", "희망로 36길 65-9 (대문, 쪽문)"],
+      "38": ["들안로32길 66-4 (상)", "들안로32길 66-15 (상-1층)"],
+      "39": ["동대구로 29길 55 (대구 2층)"],
+      "40": ["희망로 36길 109-18 (상)", "청수로 109-5 (황금천주교회)"],
+      "41": ["희망로 36길 107-16 (상, 하)", "희망로 36길 107-15 (상-우1, 하)"],
+      "42": ["들안로 32길 77-17 (좌)"],
+      "43": ["희망로 36길 107-8 (하)", "희망로 36길 107-10 (좌)", "희망로 36길 107-14 (대문)"],
+      "44": ["들안로 32길 95-8 (좌-101)", "들안로 32길 95-8 (우상-202)"],
+      "45": ["동대구로 29길 54-46 (좌)", "동대구로 29길 54-52 (우)"],
+      "50": ["동대구로 110 (삼성스토어)"],
+      "51": ["청수로 35길 32 (우)", "청수로 35길 38 (우)"],
+      "54": [
+        "청수로45길 41 (306동 505호)", "청수로45길 41 (306동 1001호)", "청수로45길 41 (306동 1205호)",
+        "청수로45길 41 (306동 1305호)", "청수로45길 41 (306동 1401호)", "청수로45길 41 (306동 1403호)",
+        "청수로45길 41 (306동 1405호)", "청수로45길 41 (306동 1407호)", "청수로45길 41 (306동 1409호)",
+        "청수로45길 41 (306동 1501호)", "청수로45길 41 (306동 1503호)", "청수로45길 41 (306동 1505호)",
+        "청수로45길 41 (306동 1507호)", "청수로45길 41 (306동 1509호)", "청수로45길 41 (306동 1102호)",
+        "청수로45길 41 (306동 1506호)"
+      ],
+      "55": [
+        "청수로45길 41 (305동 402호)", "청수로45길 41 (305동 804호)", "청수로45길 41 (305동 1004호)",
+        "청수로45길 41 (305동 1005호)", "청수로45길 41 (305동 1006호)", "청수로45길 41 (305동 1105호)",
+        "청수로45길 41 (305동 1303호)", "청수로45길 41 (305동 1402호)", "청수로45길 41 (305동 1404호)",
+        "청수로45길 41 (305동 1501호)", "청수로45길 41 (305동 1502호)", "청수로45길 41 (305동 1503호)",
+        "청수로45길 41 (305동 1504호)", "청수로45길 41 (305동 706호)", "청수로45길 41 (305동 801호)",
+        "청수로45길 41 (305동 1103호)", "청수로45길 41 (305동 1104호)", "청수로45길 41 (305동 1106호)",
+        "청수로45길 41 (305동 1205호)", "청수로45길 41 (305동 1506호)"
+      ],
+      "56": [
+        "청수로45길 41 (304동 301호)", "청수로45길 41 (304동 605호)", "청수로45길 41 (304동 805호)",
+        "청수로45길 41 (304동 902호)", "청수로45길 41 (304동 903호)", "청수로45길 41 (304동 1202호)",
+        "청수로45길 41 (304동 1203호)", "청수로45길 41 (304동 1204호)", "청수로45길 41 (304동 1301호)",
+        "청수로45길 41 (304동 1305호)", "청수로45길 41 (304동 1404호)", "청수로45길 41 (304동 1503호)",
+        "청수로45길 41 (304동 1505호)", "청수로45길 41 (304동 308호)", "청수로45길 41 (304동 608호)",
+        "청수로45길 41 (304동 708호)", "청수로45길 41 (304동 1007호)", "청수로45길 41 (304동 1106호)",
+        "청수로45길 41 (304동 1406호)", "청수로45길 41 (304동 1506호)", "청수로45길 41 (304동 1508호)"
+      ],
+      "57": [
+        "청수로45길 41 (303동 101호)", "청수로45길 41 (303동 201호)", "청수로45길 41 (303동 402호)",
+        "청수로45길 41 (303동 502호)", "청수로45길 41 (303동 701호)", "청수로45길 41 (303동 1002호)",
+        "청수로45길 41 (303동 1005호)", "청수로45길 41 (303동 1103호)", "청수로45길 41 (303동 1201호)",
+        "청수로45길 41 (303동 1302호)", "청수로45길 41 (303동 1304호)", "청수로45길 41 (303동 1402호)",
+        "청수로45길 41 (303동 1403호)", "청수로45길 41 (303동 1405호)", "청수로45길 41 (303동 1504호)",
+        "청수로45길 41 (303동 1505호)"
+      ],
+      "58": [
+        "청수로45길 41 (302동 405호)", "청수로45길 41 (302동 505호)", "청수로45길 41 (302동 605호)",
+        "청수로45길 41 (302동 703호)", "청수로45길 41 (302동 705호)", "청수로45길 41 (302동 1103호)",
+        "청수로45길 41 (302동 1105호)", "청수로45길 41 (302동 1203호)", "청수로45길 41 (302동 1404호)",
+        "청수로45길 41 (302동 1405호)", "청수로45길 41 (302동 1503호)", "청수로45길 41 (302동 1504호)",
+        "청수로45길 41 (302동 1505호)", "청수로45길 41 (302동 1007호)", "청수로45길 41 (302동 1106호)",
+        "청수로45길 41 (302동 1107호)", "청수로45길 41 (302동 1209호)", "청수로45길 41 (302동 1506호)",
+        "청수로45길 41 (302동 1507호)", "청수로45길 41 (302동 1508호)"
+      ],
+      "59": [
+        "청수로45길 41 (301동 203호)", "청수로45길 41 (301동 601호)", "청수로45길 41 (301동 701호)",
+        "청수로45길 41 (301동 703호)", "청수로45길 41 (301동 704호)", "청수로45길 41 (301동 805호)",
+        "청수로45길 41 (301동 901호)", "청수로45길 41 (301동 904호)", "청수로45길 41 (301동 1001호)",
+        "청수로45길 41 (301동 1002호)", "청수로45길 41 (301동 1003호)", "청수로45길 41 (301동 1105호)",
+        "청수로45길 41 (301동 1205호)", "청수로45길 41 (301동 1303호)", "청수로45길 41 (301동 1305호)",
+        "청수로45길 41 (301동 1403호)", "청수로45길 41 (301동 1405호)", "청수로45길 41 (301동 1501호)",
+        "청수로45길 41 (301동 1502호)", "청수로45길 41 (301동 1503호)", "청수로45길 41 (301동 1504호)",
+        "청수로45길 41 (301동 1505호)", "청수로45길 41 (301동 507호)", "청수로45길 41 (301동 1006호)",
+        "청수로45길 41 (301동 1009호)", "청수로45길 41 (301동 1309호)", "청수로45길 41 (301동 1406호)",
+        "청수로45길 41 (301동 1407호)", "청수로45길 41 (301동 1508호)"
+      ],
+      "63": ["청호로 42길 43 (우)", "청호로 42길 51 (좌)"],
+      "66-2": ["청호로 340 (목련A 3동 207호)", "청호로 340 (목련A 5동 109호)"],
+      "68": ["범어로 20길 13 (우 1층)", "범어로 20길 13-1 (상)"],
+      "69": ["달구벌대로 504길 28 (전체)", "달구벌대로 504길 40 (화산샬렛 101동 302호)"],
+      "70": ["달구벌대로 504길 32 (우)", "달구벌대로 504길 34 (우-2)"],
+      "71": ["범어로 18길 22 (힐스테이트 104동 1601호)", "범어로 18길 22 (힐스테이트 104동 1603호)"],
+      "72": ["범어로 20길 37-14 (우)", "범어로 20길 37-14 (대문안 우202호)"],
+      "74": ["달구벌대로 504길 11-13 (좌)"],
+      "77": ["청호로 85길 30 (다인빌 401호)", "청호로 85안길 3 (102호)", "청호로 85안길 19 (좌)"],
+      "84": ["청호로 85안길 32 (우)", "청호로 85안길 38 (101호)"],
+      "85": ["청호로 85길 58 (하)"],
+      "86": ["달구벌대로 512길 28 (좌, 우)"],
+      "87": ["달구벌대로 512길 14 (하)", "달구벌대로 512길 22-7 (2층)"],
+      "89": ["청호로 95길 3 (상, 하)", "청호로 95길 11 (좌, 우)"],
+      "90": ["청호로 88길 31 (우-201호)"],
+      "91": ["청호로 88길 20 (우)", "청호로 94길 11 (우)"],
+      "93": ["청호로 92길 6 (대문)"],
+      "94": ["청호로 92길 39 (우)", "청호로 92길 43 (우)"],
+      "95": ["청호로 94길 27 (상)", "청호로 94길 41 (우)"],
+      "96": ["청호로 94길 71-6 (우)", "청호로 94길 71-10 (좌)"],
+      "97": ["청호로 96길 38 (좌)", "청호로 96길 40 (좌)"],
+      "98": ["청호로 96안길 11 (우)", "청호로 96안길 13 (우)"],
+      "99": ["청호로 94길 38 (우)"],
+      "100": ["청호로 96안길 60-17 (오성중고교)"],
+      "101": ["달구벌대로 522길 77 (성광타운 101동 602호)"],
+      "102": ["달구벌대로 522길 121-10 (좌)", "달구벌대로 522길 121-12 (우)"],
+      "103": ["달구벌대로 522길 134 (오성골프 3층)"],
+      "105": ["달구벌대로 2626 (SK주유소)"],
+      "106": ["달구벌대로 2652 (1층)"],
+      "108": ["교학로2길 5 (샌드위치집)"],
+      "109": ["달구벌대로 530길 46 (성좌아파트 101동 1003호)"],
+      "110": ["교학로 8길 37 (소선여중)"],
+      "111": ["교학로 12길 10 (대청초등학교)"],
+      "112": ["교학로 12길 41 (혜화여고)"],
+      "113": ["교학로 54 (만촌3동경로당)"],
+      "122(X)": ["교학로11길 43 (한도A 나 503호)", "교학로7길 68 (쪽문 2층)"],
+      "123": ["교학로 11길 63 (하)", "교학로 11길 71 (하)"]
+    };
 
     const rawZones = [
       ["1", "동일가스 충전소", "청수로 1 (SK행복충전 동일가스 충전소)", 1],
@@ -365,6 +480,7 @@
       name: item[1],
       address: item[2],
       teams: item[3] || 1,
+      dnvList: doNotVisitMap[item[0]] || [],
       isDev: item[0].includes('(X)') || item[2].includes('재개발'),
       assignedVols: []
     }));
@@ -489,7 +605,6 @@
       event.target.value = '';
     }
 
-    // 1단계: 출석 풀 렌더링 (3열 그리드)
     function renderAttendancePool() {
       const container = document.getElementById('attendanceGrid');
       if (filteredPool.length === 0) {
@@ -541,7 +656,6 @@
       }
     }
 
-    // 모달: 신규 등록
     function openAddModal() {
       document.getElementById('addModal').classList.remove('hidden');
       document.getElementById('newVolName').focus();
@@ -580,7 +694,6 @@
       alert(`'${name}' 봉사자가 추가되었으며, 오늘 출석 명단에 자동 등록되었습니다.`);
     }
 
-    // 모달: 수정 및 삭제
     function openEditModal(id) {
       const vol = allVolunteers.find(v => v.id === id);
       if (!vol) return;
@@ -663,7 +776,6 @@
       alert('봉사자가 명단에서 삭제되었습니다.');
     }
 
-    // 2단계: 오늘 참여자 그리드 (3열 그리드로 수정됨)
     function renderTodayVolGrid() {
       const container = document.getElementById('todayVolGrid');
       document.getElementById('todayCountBadge').innerText = `${attendedIds.size}명`;
@@ -778,18 +890,21 @@
       }
     }
 
-    // 3단계: 구역 리스트 (유동형 크기)
+    // 3단계: 구역 리스트 (방문금지 건수 뱃지 표기)
     function renderZones() {
       const container = document.getElementById('zoneList');
       container.innerHTML = filteredZones.map(z => {
         const isSel = z.id === selectedZone.id;
         const count = z.assignedVols.length;
+        const dnvCount = z.dnvList.length;
+
         return `
           <button type="button" onclick="selectZone(${z.id})" class="p-2 rounded-xl border text-left transition flex flex-col justify-between min-h-[64px] min-w-0 ${isSel ? 'bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-blue-500/20' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'}">
             <div class="flex items-center justify-between w-full">
               <div class="flex items-center gap-1 min-w-0">
                 <span class="f-sub px-1 py-0.2 rounded font-mono font-bold shrink-0 ${isSel ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-800'}">${z.no}호</span>
                 <span class="f-badge font-bold px-1 py-0.2 rounded shrink-0 ${isSel ? 'bg-blue-600/80 text-white' : 'bg-amber-100 text-amber-800'}">${z.teams}팀</span>
+                ${dnvCount > 0 ? `<span class="f-badge font-bold px-1 py-0.2 rounded bg-rose-50 text-rose-600 border border-rose-200 shrink-0">🚫금지 ${dnvCount}</span>` : ''}
               </div>
               <div class="flex items-center gap-0.5 shrink-0 ml-1">
                 ${count > 0 ? `<span class="f-badge px-1 py-0.2 rounded-full bg-blue-100 text-blue-700 font-bold shrink-0">${count}명</span>` : ''}
@@ -813,7 +928,8 @@
 
     function selectZone(id) {
       selectedZone = zones.find(z => z.id === id);
-      document.getElementById('selectedZoneLabel').innerText = `${selectedZone.no}호 (권장 ${selectedZone.teams}팀)`;
+      const dnvInfo = selectedZone.dnvList.length > 0 ? ` / 🚫금지 ${selectedZone.dnvList.length}건` : '';
+      document.getElementById('selectedZoneLabel').innerText = `${selectedZone.no}호 (권장 ${selectedZone.teams}팀${dnvInfo})`;
       renderZones();
     }
 
@@ -863,9 +979,11 @@
       renderZones();
       renderAssignedBoard();
 
-      alert(`[배정 완료]\n${selectedZone.no}호 (${selectedZone.name})\n👉 ${addedNames.join(', ')} (${addedNames.length}명) 등록 완료!`);
+      const dnvAlert = selectedZone.dnvList.length > 0 ? `\n※ 주의: 방문금지 주소 ${selectedZone.dnvList.length}건 포함` : '';
+      alert(`[배정 완료]\n${selectedZone.no}호 (${selectedZone.name})\n👉 ${addedNames.join(', ')} (${addedNames.length}명) 등록 완료!${dnvAlert}`);
     }
 
+    // 4단계: 실시간 배정 현황판 (방문금지 안내 표기)
     function renderAssignedBoard() {
       const container = document.getElementById('assignedBoard');
       const activeZones = zones.filter(z => z.assignedVols.length > 0);
@@ -883,52 +1001,65 @@
         return;
       }
 
-      container.innerHTML = activeZones.map(z => `
-        <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
-          <div class="flex items-center justify-between border-b border-slate-200/80 pb-1.5">
-            <div class="flex flex-col min-w-0">
-              <div class="flex items-center gap-1">
-                <span class="px-1.5 py-0.2 bg-slate-900 text-white font-mono font-bold rounded f-sub">${z.no}호</span>
-                <span class="f-body font-bold text-slate-800 truncate">${z.name}</span>
-                <span class="f-badge font-bold px-1 rounded bg-amber-100 text-amber-800 shrink-0">${z.teams}팀</span>
-              </div>
-              <span class="f-badge text-slate-500 mt-0.5 truncate">📍 ${z.address}</span>
-            </div>
-            <span class="f-badge font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full border border-blue-100 shrink-0 ml-1">${z.assignedVols.length}명</span>
-          </div>
+      container.innerHTML = activeZones.map(z => {
+        const dnvCount = z.dnvList.length;
 
-          <div class="space-y-1 pt-0.5">
-            ${z.assignedVols.map(v => `
-              <div class="flex items-center justify-between bg-white p-1.5 rounded-lg border border-slate-100">
-                <div class="flex items-center gap-1 min-w-0">
-                  <span class="font-bold text-slate-800 f-body truncate">${v.name}</span>
-                  <span class="text-slate-400 f-badge font-mono shrink-0">${v.phone ? `(${v.phone.slice(-4)})` : '(번호없음)'}</span>
+        return `
+          <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+            <div class="flex items-center justify-between border-b border-slate-200/80 pb-1.5">
+              <div class="flex flex-col min-w-0">
+                <div class="flex items-center gap-1">
+                  <span class="px-1.5 py-0.2 bg-slate-900 text-white font-mono font-bold rounded f-sub">${z.no}호</span>
+                  <span class="f-body font-bold text-slate-800 truncate">${z.name}</span>
+                  <span class="f-badge font-bold px-1 rounded bg-amber-100 text-amber-800 shrink-0">${z.teams}팀</span>
+                  ${dnvCount > 0 ? `<span class="f-badge font-bold px-1 rounded bg-rose-100 text-rose-700 shrink-0">🚫금지 ${dnvCount}건</span>` : ''}
                 </div>
-                <div class="flex items-center gap-1 shrink-0 ml-1">
-                  <button onclick="sendIndividualSMS('${v.phone || ''}', '${z.no}', '${z.name}', '${z.address}')" class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded f-sub font-bold border border-emerald-200 flex items-center gap-0.5 transition">
-                    <i data-lucide="message-square" class="w-3 h-3"></i>
-                    <span>문자</span>
-                  </button>
-                  <button onclick="removeVolunteerFromZone(${z.id}, ${v.id})" class="px-1.5 py-0.5 text-slate-400 hover:text-rose-500 rounded f-sub transition">
-                    삭제
-                  </button>
-                </div>
+                <span class="f-badge text-slate-500 mt-0.5 truncate">📍 ${z.address}</span>
               </div>
-            `).join('')}
+              <span class="f-badge font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full border border-blue-100 shrink-0 ml-1">${z.assignedVols.length}명</span>
+            </div>
+
+            <div class="space-y-1 pt-0.5">
+              ${z.assignedVols.map(v => `
+                <div class="flex items-center justify-between bg-white p-1.5 rounded-lg border border-slate-100">
+                  <div class="flex items-center gap-1 min-w-0">
+                    <span class="font-bold text-slate-800 f-body truncate">${v.name}</span>
+                    <span class="text-slate-400 f-badge font-mono shrink-0">${v.phone ? `(${v.phone.slice(-4)})` : '(번호없음)'}</span>
+                  </div>
+                  <div class="flex items-center gap-1 shrink-0 ml-1">
+                    <button onclick="sendIndividualSMS('${v.phone || ''}', '${z.no}', '${z.name}', '${z.address}')" class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded f-sub font-bold border border-emerald-200 flex items-center gap-0.5 transition">
+                      <i data-lucide="message-square" class="w-3 h-3"></i>
+                      <span>문자</span>
+                    </button>
+                    <button onclick="removeVolunteerFromZone(${z.id}, ${v.id})" class="px-1.5 py-0.5 text-slate-400 hover:text-rose-500 rounded f-sub transition">
+                      삭제
+                    </button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
           </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
 
       lucide.createIcons();
     }
 
+    // 방문금지 목록이 포함된 최종 문자 발송 함수
     function sendIndividualSMS(phone, zoneNo, zoneName, fullAddr) {
       const cleanPhone = phone.replace(/[^0-9]/g, '');
+      const dnvItems = doNotVisitMap[zoneNo] || [];
+      
+      let dnvText = "";
+      if (dnvItems.length > 0) {
+        dnvText = "\n\n⚠️ [방문 금지 목록]\n" + dnvItems.map(item => `- ${item}`).join('\n');
+      }
+
       const messageBody = `[봉사 구역 배정 안내]
 안녕하세요! 오늘 배정된 봉사 구역 안내드립니다.
 
 * 배정 구역: ${zoneNo}호 - ${zoneName}
-* 현장 주소: ${fullAddr}
+* 현장 주소: ${fullAddr}${dnvText}
 
 오늘도 즐거운 봉사 되세요~`;
 
