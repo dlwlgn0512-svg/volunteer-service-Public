@@ -39,7 +39,7 @@
     }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-900 min-h-screen pb-24">
+<body class="bg-slate-100 text-slate-900 min-h-screen pb-28">
 
   <!-- 상단 네비게이션 -->
   <header class="bg-white border-b border-slate-200 px-3 py-2.5 sticky top-0 z-30 shadow-xs">
@@ -57,7 +57,8 @@
     </div>
   </header>
 
-  <main class="p-3 space-y-3 max-w-md mx-auto">
+  <!-- 1. [배정 화면] 탭 -->
+  <main id="tabAssignView" class="p-3 space-y-3 max-w-md mx-auto">
 
     <!-- 1단계: 당일 출석 체크 -->
     <section class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
@@ -113,7 +114,7 @@
       <p class="f-badge text-slate-400 text-center">* 붉은색 블록은 이미 배정된 인원입니다. 터치 후 [배정해제] 가능</p>
     </section>
 
-    <!-- 3단계: 구역카드 선택 (방문금지 건수 표시) -->
+    <!-- 3단계: 구역카드 선택 -->
     <section class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
       <div class="flex items-center justify-between">
         <label class="f-title font-bold text-slate-800 flex items-center gap-1.5">
@@ -150,7 +151,7 @@
         <span id="assignBtnText">선택한 인원 배정 확정하기</span>
       </button>
       <p class="f-badge text-slate-400 text-center mt-1.5">
-        * 배정 완료 후 아래 현황판에서 개별적으로 문자를 발송할 수 있습니다.
+        * 배정 완료 후 아래 현황판 및 하단 [기록] 탭에서 전체 문자를 보낼 수 있습니다.
       </p>
     </div>
 
@@ -168,6 +169,65 @@
     </section>
 
   </main>
+
+  <!-- 2. [기록 화면] 탭 -->
+  <main id="tabRecordView" class="p-3 space-y-3 max-w-md mx-auto hidden">
+    
+    <!-- 당일 전체 문자 전송 헤더 카드 -->
+    <section class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <span class="f-badge font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">당일 배정 집계</span>
+          <h2 id="recordDateHeading" class="f-title font-bold text-slate-900 mt-1">2026년 9월 14일 현황</h2>
+        </div>
+        <span id="recordTotalBadge" class="f-sub font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg border border-blue-200">총 0개 구역</span>
+      </div>
+
+      <!-- 원클릭 전체 문자 발송 및 복사 버튼 -->
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <button onclick="sendDailySummarySMS()" class="py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold f-sub rounded-xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition">
+          <i data-lucide="send" class="w-4 h-4"></i>
+          <span>배정 현황 전체 문자</span>
+        </button>
+        <button onclick="copyDailySummaryText()" class="py-3 bg-slate-800 hover:bg-slate-900 active:scale-[0.98] text-white font-bold f-sub rounded-xl shadow-md shadow-slate-900/20 flex items-center justify-center gap-1.5 transition">
+          <i data-lucide="copy" class="w-4 h-4"></i>
+          <span>내용 전체 복사</span>
+        </button>
+      </div>
+
+      <p class="f-badge text-slate-400 text-center leading-relaxed">
+        * 구역별로 <b>첫 번째 봉사자</b>의 이름만 <code>[구역번호] - [봉사자]</code> 형식으로 취합되어 전송됩니다.
+      </p>
+    </section>
+
+    <!-- 당일 배정 상세 기록 리스트 -->
+    <section class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+        <label class="f-title font-bold text-slate-800 flex items-center gap-1.5">
+          <i data-lucide="list-checks" class="w-4 h-4 text-emerald-600"></i>
+          구역별 배정 기록
+        </label>
+        <button onclick="resetAllAssignments()" class="f-sub text-rose-500 hover:underline">배정 초기화</button>
+      </div>
+
+      <div class="space-y-2" id="recordListContainer"></div>
+    </section>
+
+  </main>
+
+  <!-- 하단 고정 탭 네비게이션 바 -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40">
+    <div class="max-w-md mx-auto grid grid-cols-2 h-16">
+      <button onclick="switchTab('assign')" id="navBtnAssign" class="flex flex-col items-center justify-center gap-1 text-blue-600 transition">
+        <i data-lucide="layout-grid" class="w-5 h-5"></i>
+        <span class="f-sub font-bold">배정</span>
+      </button>
+      <button onclick="switchTab('record')" id="navBtnRecord" class="flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 transition">
+        <i data-lucide="clipboard-list" class="w-5 h-5"></i>
+        <span class="f-sub font-bold">기록</span>
+      </button>
+    </div>
+  </nav>
 
   <!-- 봉사자 추가 모달창 -->
   <div id="addModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
@@ -236,7 +296,6 @@
   <script>
     let allVolunteers = JSON.parse(localStorage.getItem('v6_secure_volunteers')) || [];
 
-    // [최신] 131개 기본 구역 데이터
     const defaultRawZones = [
       ["1", "동일가스 충전소", "청수로 1", 1],
       ["2", "중동시장", "청수로 23", 3],
@@ -371,17 +430,14 @@
       ["124", "만촌우방1차", "교학로11길 46", 2]
     ];
 
-    // [최신] 방문금지 리스트.xlsx 데이터 매핑
     const defaultDncMap = {"5": ["수성로39안길1 (1층 수족관)", "청수로 3길 70 (2층 벨)"], "6": ["수성로 41길 9 (명품수선)"], "20": ["들안로29길 21 (Osung 명품타운 202(젊은 여성. 인터폰에서 심한 욕설25/6/14) 방문금지)", "수성로38길 34-33 (싸나움 방문금지)"], "26": ["들안로 180-9 (좌-101  (방문금지 23.1.1))", "들안로 180-9 (우상-201 (방문금지 23.1.1))", "들안로 32길 9-4 (우 1층 (방문금지 23.4.2))"], "30": ["희망로 190-2 (우 (방문금지 23.3.26))", "희망로 29 (상, 하 (방문금지 23.1.1))"], "31": ["들안로 28길 86-4 (대문, 쪽문 (방문금지 23.1.1))", "들안로 28길 86-20 (좌, 우 (방문금지 23.1.1))", "들안로 28길 86-22 (대문 (방문금지 23.1.1))"], "32": ["들안로 32길 78-8 (우성빌라트 201호 (방문금지 22.12.18))"], "33": ["들안로 28길 1607 (좌 -1층 (방문금지 23.11.19))"], "35": ["청수로 97 (2층, 3층 안심내과 (방문금지 24.1.1))"], "37": ["들안로 32길 73-11 (황금제네스 건물 전체 (방문금지 24.1.1))", "희망로 36길 65-9 (대문 , 쪽문 (방문금지 23.1.1))"], "38": ["들안로 28길 24-27 (2층 (방문금지 23.1.1))", "들안로 28길 24-41 (방문금지 24.1.1)"], "39": ["동대구로 29길 54-15 (대문 (방문금지 23.1.1))", "들안로 28길 24-34 (대문 (방문금지 23.1.1))"], "40": ["희망로 36길 81 (상 , 하 (방문금지 23.1.1))", "희망로 36길 81-5 (대문 (방문금지 23.1.1))"], "41": ["희망로 36길 108 (201, 202 (방문금지 23.1.1))", "희망로 36길 118-4 (2층 (방문금지 23.1.1))", "희망로 36길 124-7 (1층 (방문금지 23.1.1))"], "42": ["희망로36길 122 (201(방문금지24.9.1))", "희망로36길 122 (202(방문금지24.9.1))", "희망로36길 122-1 (로얄하이츠 101(방문금지))", "희망로36길 122-1 (로얄하이츠 102(방문금지))", "희망로36길 122-1 (로얄하이츠 103(방문금지))", "희망로36길 122-1 (로얄하이츠 201(방문금지))", "희망로36길 122-1 (로얄하이츠 202(방문금지))", "희망로36길 122-1 (로얄하이츠 203(방문금지))", "희망로36길 122-1 (로얄하이츠 301(방문금지))", "희망로36길 122-1 (로얄하이츠 302(방문금지))", "희망로36길 122-1 (로얄하이츠 303(방문금지))", "들안로 32길 77-16 (청운빌라 201(방문금지 23.1.1))"], "43": ["동대구로 29길 67 (성실빌라트 302(방문금지 24.1.1))", "동대구로 29길 67-17 (3층(방문금지 23.1.1))", "동대구로 29길 67-17 (4층(방문금지 23.1.1))", "동대구로 29길 67-17 (5층(방문금지 23.1.1))", "동대구로 29길 67-17 (6층(방문금지 23.1.1))", "동대구로 29길 67-17 (7층(방문금지 23.1.1))", "동대구로 29길 67-17 (8층(방문금지 23.1.1))", "동대구로 29길 67-17 (9층(방문금지 23.1.1))", "동대구로 29길 67-17 (10층(방문금지 23.1.1))"], "44": ["동대구로 29길 68-15 (대문(방문금지 23.1.1))", "동대구로 29길 68-17 (골든빌 401(방문금지 23.1.1))", "동대구로 29길 68-17 (골든빌 402(방문금지 23.1.1))", "동대구로 29길 68-17 (골든빌 403(방문금지 23.1.1))", "동대구로 29길 68-17 (골든빌 404(방문금지 23.1.1))", "들안로 32길 96-7 (대문(방문금지 23.1.1))", "들안로 32길 96-9 (대문(방문금지 23.1.1))", "들안로 32길 96-13 (대문, 쪽문(방문금지 23.1.1))"], "45": ["동대구로 29길 54-4 (대문(방문금지 23.1.1))", "동대구로 29길 54-46 (우(방문금지 23.1.1))"], "50": ["동대구로 99 (동대구피부과의원 3층(방문금지 24.1.1))"], "51": ["청수로 31길 10 (주택벨(방문금지 23.1.1))", "청수로 31길 10-6 (대문(방문금지 23.1.1))", "청수로 35길 33 (태원주택 대문(방문금지 23.1.1))", "청수로 35길 37-12 (대문(방문금지 23.1.1))"], "54-1": ["청수로45길 41 (306동 505(방문금지 2025.12.21))", "청수로45길 41 (306동 1001(방문금지 24.01.01))", "청수로45길 41 (306동 1205(방문금지 24.01.01))", "청수로45길 41 (306동 1305(방문금지 24.01.01))", "청수로45길 41 (306동 1401(방문금지 24.01.01))", "청수로45길 41 (306동 1403(방문금지 24.01.01))", "청수로45길 41 (306동 1405(방문금지 24.01.01))", "청수로45길 41 (306동 1407(방문금지 24.01.01))", "청수로45길 41 (306동 1409(방문금지 24.01.01))", "청수로45길 41 (306동 1501(방문금지 24.01.01))", "청수로45길 41 (306동 1503(방문금지 24.01.01))", "청수로45길 41 (306동 1505(방문금지 24.01.01))", "청수로45길 41 (306동 1507(방문금지 24.01.01))", "청수로45길 41 (306동 1509(방문금지 24.01.01))"], "54-2": ["청수로45길 41 (306동 1102(방문금지 2023.01.01))", "청수로45길 41 (306동 1506(방문금지 2026.04.04 송원영))"], "55-1": ["청수로45길 41 (305동 305(방문금지 2023.01.01))", "청수로45길 41 (305동 407(방문금지 2023.01.01))", "청수로45길 41 (305동 1001(방문금지 2023.01.01))", "청수로45길 41 (305동 1109(방문금지 2023.01.01))", "청수로45길 41 (305동 1205(방문금지 2023.01.01))"], "55-2": ["청수로45길 41 (305동 104(방문금지))", "청수로45길 41 (305동 302(방문금지))", "청수로45길 41 (305동 306(방문금지))", "청수로45길 41 (305동 404(방문금지))", "청수로45길 41 (305동 410(방문금지))", "청수로45길 41 (305동 506(방문금지))", "청수로45길 41 (305동 810(방문금지25.6.24))", "청수로45길 41 (305동 1004(방문금지))", "청수로45길 41 (305동 1204(방문금지))"], "56-1": ["청수로45길 41 (304동 1003 (방문 사전))"], "56-2": ["청수로45길 41 (304동 1304(방문금지))", "청수로45길 41 (304동 1306(방문금지))"], "57-1": ["청수로45길 41 (303동 403(방문금지 2023.01.01))"], "58-1": ["청수로45길 41 (302동 513(방문금지))", "청수로45길 41 (302동 607(방문금지))", "청수로45길 41 (302동 803(방문금지))", "청수로45길 41 (302동 1105(방문금지))", "청수로45길 41 (302동 1211(방문금지))"], "58-2": ["청수로45길 41 (302동 606(방문금지))", "청수로45길 41 (302동 806(방문금지))", "청수로45길 41 (302동 1016 방문금지)", "청수로45길 41 (302동 1204(방문금지))", "청수로45길 41 (302동 1206(방문금지))", "청수로45길 41 (302동 1214(방문금지))"], "59-1": ["청수로45길 41 (301동 807(방문금지))"], "59-2": ["청수로45길 41 (301동 210(방문금지))", "청수로45길 41 (301동 212(방문금지))", "청수로45길 41 (301동 702(방문금지))"], "63": ["청수로 256-3 (황금힐스테이트 101-1402호 (방문금지 23.3.5))"], "66-2": ["청호로 340 (목련아파트 3동 1204(방문금지 23.1.1))", "청호로 340 (목련아파트 3동 1403(방문금지 23.1.1))"], "68": ["범어로 26 (대동타운 302호(방문금지 23.1.1))", "범어로 26 (대동타운 305호(방문금지 23.1.1))", "범어로 26 (대동타운 502호(방문금지 23.1.1))"], "69": ["달구벌대로 504길 46 (동산빌라 102호(방문금지 23.1.1))"], "70": ["달구벌대로 504길 34 (정원빌라 201호(방문금지 23.1.1))"], "71": ["범어로18길 22 (힐스테이트상가 1층 110 행복한힐스테이트부동산(방문금지 2025.12.04))", "범어로18길 22 (힐스테이트상가 2층 212 제현샘영어교습소(방문금지 2025.03.22))"], "72": ["범어로 70 (아성빌라 302호(방문금지 23.1.1))"], "74": ["달구벌대로 504길 15 (2층 원룸(방문금지 23.1.1))"], "77": ["청호로 85길 33 (102호(방문금지 23.1.1))"], "84": ["청호로 85길 55 (102호(방문금지 23.1.1))"], "85": ["청호로 85안길 37-12 (202호(방문금지 23.1.1))"], "86": ["달구벌대로 512길 16 (1층(방문금지 23.1.1))"], "87": ["달구벌대로 512길 20 (대문(방문금지 23.1.1))"], "89": ["청호로 95길 19 (101호(방문금지 23.1.1))"], "90": ["청호로 88길 18 (2층(방문금지 23.1.1))"], "91": ["청호로 88길 24 (2층(방문금지 23.1.1))"], "93": ["청호로 92길 6 (101호(방문금지 23.1.1))"], "94": ["청호로 92길 35 (범양맨션 3동 101호(방문금지 23.1.1))"], "95": ["청호로 94길 19 (202호(방문금지 23.1.1))"], "96": ["청호로 494 (동진상가 302호(방문금지 23.1.1))"], "97": ["청호로 96길 12 (동진아파트 2동 203호(방문금지 23.1.1))"], "98": ["청호로 96길 23 (대문(방문금지 23.1.1))"], "99": ["청호로 94길 44 (2층(방문금지 23.1.1))"], "100": ["청호로 96안길 41 (201호(방문금지 23.1.1))"], "101": ["달구벌대로 522길 77 (성광타운 101-110(방문금지 24.1.1))"], "102": ["달구벌대로 522길 121-6 (대문(방문금지 23.1.1))"], "103": ["달구벌대로 522길 103 (좌-1층(방문금지 23.1.1))"], "105": ["청호로 102길 43-4 (대문(방문금지 23.1.1))"], "106": ["달구벌대로 528길 15-2 (101호(방문금지 23.1.1))"], "108": ["교학로 2길 52 (대문(방문금지 23.1.1))"], "109": ["달구벌대로 530길 46 (성좌아파트 1동 402호(방문금지 23.1.1))"], "110": ["교학로 8길 41 (201호(방문금지 23.1.1))"], "111": ["교학로 10길 16 (우-2층(방문금지 23.1.1))"], "112": ["교학로 12길 31 (2층(방문금지 23.1.1))"], "113": ["교학로 46 (대문(방문금지 23.1.1))"], "122(X)": ["교학로 11길 43 (한도아파트 가동 101호(방문금지 23.1.1))"], "123": ["교학로 11길 73 (만촌우방 201-105(방문금지 23.1.1))"]};
 
-    // 구역 번호에 해당하는 모든 방문금지 주소 배열 구하기 (세부 동/호수 통합)
     function getZoneDncList(zoneNo) {
       let list = [];
       const zStr = String(zoneNo);
       if (defaultDncMap[zStr]) {
         list.push(...defaultDncMap[zStr]);
       }
-      // 54-1 등 하위 구역이 존재하는 상위 구역(예: 54) 처리
       if (!zStr.includes('-') && !zStr.includes('(')) {
         for (const k in defaultDncMap) {
           if (k.startsWith(zStr + '-')) {
@@ -435,6 +491,15 @@
       return map;
     }
 
+    // 시스템 시계 기준 "YYYY년 M월 D일" 문자열 생성
+    function getSystemDateString() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = now.getMonth() + 1;
+      const d = now.getDate();
+      return `${y}년 ${m}월 ${d}일`;
+    }
+
     function init() {
       document.getElementById('totalPoolCount').innerText = allVolunteers.length;
       document.getElementById('zoneCountDisplay').innerText = zones.length;
@@ -446,6 +511,140 @@
       renderTodayVolGrid();
       renderZones();
       renderAssignedBoard();
+      renderRecordView();
+    }
+
+    // 하단 탭 전환 함수
+    function switchTab(tab) {
+      const assignView = document.getElementById('tabAssignView');
+      const recordView = document.getElementById('tabRecordView');
+      const btnAssign = document.getElementById('navBtnAssign');
+      const btnRecord = document.getElementById('navBtnRecord');
+
+      if (tab === 'assign') {
+        assignView.classList.remove('hidden');
+        recordView.classList.add('hidden');
+        btnAssign.className = 'flex flex-col items-center justify-center gap-1 text-blue-600 transition';
+        btnRecord.className = 'flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 transition';
+        renderTodayVolGrid();
+        renderZones();
+        renderAssignedBoard();
+      } else {
+        assignView.classList.add('hidden');
+        recordView.classList.remove('hidden');
+        btnAssign.className = 'flex flex-col items-center justify-center gap-1 text-slate-400 hover:text-slate-600 transition';
+        btnRecord.className = 'flex flex-col items-center justify-center gap-1 text-blue-600 transition';
+        renderRecordView();
+      }
+      lucide.createIcons();
+    }
+
+    // 기록 탭 화면 렌더링
+    function renderRecordView() {
+      const dateHeading = document.getElementById('recordDateHeading');
+      dateHeading.innerText = `${getSystemDateString()} 봉사 배정`;
+
+      const activeZones = zones.filter(z => z.assignedVols.length > 0);
+      document.getElementById('recordTotalBadge').innerText = `총 ${activeZones.length}개 구역 배정`;
+
+      const container = document.getElementById('recordListContainer');
+      if (activeZones.length === 0) {
+        container.innerHTML = `
+          <div class="py-12 text-center text-slate-400 f-sub border border-dashed border-slate-200 rounded-xl space-y-1">
+            <p class="font-medium text-slate-600">오늘 아직 배정된 구역이 없습니다.</p>
+            <p class="text-[11px]">하단 [배정] 탭에서 인원과 구역을 선택하고 배정해 주세요.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = activeZones.map(z => {
+        const firstVol = z.assignedVols[0] ? z.assignedVols[0].name : '미정';
+        const otherCount = z.assignedVols.length - 1;
+        const volDisplay = otherCount > 0 ? `${firstVol} 외 ${otherCount}명` : firstVol;
+
+        return `
+          <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="px-2 py-0.5 bg-slate-900 text-white font-mono font-bold rounded f-sub shrink-0">${z.no}호</span>
+              <div class="flex flex-col min-w-0">
+                <span class="f-body font-bold text-slate-900 truncate">${firstVol}</span>
+                <span class="f-badge text-slate-400 truncate">${z.name} (${volDisplay})</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1 shrink-0 ml-1">
+              ${z.dncCount > 0 ? `<span class="f-badge px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 font-bold shrink-0">🚫 ${z.dncCount}</span>` : ''}
+              <button onclick="sendIndividualSMS('${z.assignedVols[0]?.phone || ''}', '${z.no}', '${z.name}', '${z.address}')" class="px-2 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded f-sub font-bold border border-emerald-200 transition">
+                개별문자
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    // 당일 배정 전체 취합 문자 내용 생성
+    function buildDailySummaryMessage() {
+      const activeZones = zones.filter(z => z.assignedVols.length > 0);
+      if (activeZones.length === 0) return null;
+
+      const dateStr = getSystemDateString();
+      const lines = activeZones.map(z => {
+        const firstVolName = z.assignedVols[0] ? z.assignedVols[0].name : '';
+        return `${z.no}호 - ${firstVolName}`;
+      });
+
+      return `[${dateStr} 봉사 구역 배정 현황]\n\n` + lines.join('\n');
+    }
+
+    // 당일 취합 문자 앱 실행
+    function sendDailySummarySMS() {
+      const body = buildDailySummaryMessage();
+      if (!body) {
+        alert('현재 배정된 구역이 없습니다.\n먼저 [배정] 탭에서 인원을 구역에 배정해 주세요.');
+        return;
+      }
+
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const sep = isIOS ? '&' : '?';
+      window.location.href = `sms:${sep}body=${encodeURIComponent(body)}`;
+    }
+
+    // 당일 취합 내용 클립보드 복사
+    function copyDailySummaryText() {
+      const body = buildDailySummaryMessage();
+      if (!body) {
+        alert('현재 배정된 구역이 없습니다.');
+        return;
+      }
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(body).then(() => {
+          alert("당일 배정 현황이 클립보드에 복사되었습니다!\n원하는 채팅방이나 문자창에 바로 붙여넣기 하세요.");
+        }).catch(() => {
+          fallbackCopy(body);
+        });
+      } else {
+        fallbackCopy(body);
+      }
+    }
+
+    function fallbackCopy(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.opacity = "0";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        alert("당일 배정 현황이 클립보드에 복사되었습니다!");
+      } catch (err) {
+        prompt("아래 텍스트를 직접 복사하세요:", text);
+      }
+      document.body.removeChild(textArea);
     }
 
     function handleSearchKeyDown(event) {
@@ -563,6 +762,7 @@
           renderTodayVolGrid();
           renderZones();
           renderAssignedBoard();
+          renderRecordView();
           alert(`새로운 구역 ${zones.length}개를 성공적으로 불러왔습니다!`);
         } catch (err) {
           alert('구역 엑셀 파일을 읽는 중 오류가 발생했습니다: ' + err.message);
@@ -598,6 +798,7 @@
         renderTodayVolGrid();
         renderZones();
         renderAssignedBoard();
+        renderRecordView();
         alert('기본 구역으로 복원되었습니다.');
       }
     }
@@ -674,6 +875,7 @@
 
           renderAttendancePool();
           renderTodayVolGrid();
+          renderRecordView();
           alert(`새로운 봉사자 ${newVolunteers.length}명으로 명단을 덮어썼습니다!`);
         } catch (err) {
           alert('엑셀 파일을 읽는 중 오류가 발생했습니다: ' + err.message);
@@ -818,6 +1020,7 @@
         renderAttendancePool();
         renderTodayVolGrid();
         renderAssignedBoard();
+        renderRecordView();
         alert('정보가 정상적으로 수정되었습니다.');
       }
     }
@@ -851,10 +1054,10 @@
       renderTodayVolGrid();
       renderZones();
       renderAssignedBoard();
+      renderRecordView();
       alert('봉사자가 명단에서 삭제되었습니다.');
     }
 
-    // 2단계: 오늘 참여자 그리드
     function renderTodayVolGrid() {
       const container = document.getElementById('todayVolGrid');
       document.getElementById('todayCountBadge').innerText = `${attendedIds.size}명`;
@@ -957,6 +1160,7 @@
       renderTodayVolGrid();
       renderZones();
       renderAssignedBoard();
+      renderRecordView();
 
       alert(`선택된 참여자 중 배정되어 있던 ${unassignedCount}명의 배정이 정상적으로 해제되었습니다.`);
     }
@@ -971,7 +1175,6 @@
       }
     }
 
-    // 3단계: 구역 리스트 (방문금지 집 수 뱃지 표시 추가)
     function renderZones() {
       const container = document.getElementById('zoneList');
       container.innerHTML = filteredZones.map(z => {
@@ -1063,11 +1266,11 @@
       renderTodayVolGrid();
       renderZones();
       renderAssignedBoard();
+      renderRecordView();
 
       alert(`[배정 완료]\n${selectedZone.no}호 (${selectedZone.name})\n👉 ${addedNames.join(', ')} (${addedNames.length}명) 등록 완료!`);
     }
 
-    // 4단계 현황판 렌더링
     function renderAssignedBoard() {
       const container = document.getElementById('assignedBoard');
       const activeZones = zones.filter(z => z.assignedVols.length > 0);
@@ -1125,7 +1328,6 @@
       lucide.createIcons();
     }
 
-    // [핵심] 방문금지 주소 목록이 자동 포함된 문자 발송 함수
     function sendIndividualSMS(phone, zoneNo, zoneName, fullAddr) {
       const cleanPhone = phone.replace(/[^0-9]/g, '');
       const dncList = getZoneDncList(zoneNo);
@@ -1161,6 +1363,7 @@
         renderTodayVolGrid();
         renderZones();
         renderAssignedBoard();
+        renderRecordView();
       }
     }
 
@@ -1171,6 +1374,7 @@
         renderTodayVolGrid();
         renderZones();
         renderAssignedBoard();
+        renderRecordView();
       }
     }
 
