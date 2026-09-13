@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>봉사 구역 다중 선택 배정기</title>
+  <title>황금 회중 봉사 구역 배정기</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- 엑셀 파싱 라이브러리 (SheetJS) -->
@@ -59,7 +59,7 @@
 
   <main class="p-3 space-y-3 max-w-md mx-auto">
 
-    <!-- 1단계: 당일 출석 체크 (엔터키 자동 선택 기능 탑재) -->
+    <!-- 1단계: 당일 출석 체크 -->
     <section class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
       <div class="flex items-center justify-between">
         <label class="f-title font-bold text-slate-800 flex items-center gap-1.5">
@@ -90,7 +90,7 @@
       <p class="f-badge text-slate-400 text-center">* 이름 검색 후 [Enter] 누르면 즉시 선택 / ⚙️: 정보 수정·삭제</p>
     </section>
 
-    <!-- 2단계: 오늘 참여자 중 배정할 인원 다중 선택 (배정 인원 빨간색 블록) -->
+    <!-- 2단계: 오늘 참여자 중 배정할 인원 다중 선택 -->
     <section class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
       <div class="flex items-center justify-between">
         <label class="f-title font-bold text-slate-800 flex items-center gap-1.5">
@@ -419,7 +419,6 @@
       renderAssignedBoard();
     }
 
-    // 1단계 검색창 엔터키 감지: 첫 번째 검색 결과 즉시 선택
     function handleSearchKeyDown(event) {
       if (event.key === 'Enter') {
         event.preventDefault();
@@ -427,7 +426,6 @@
           const targetVol = filteredPool[0];
           toggleAttendance(targetVol.id);
           
-          // 검색창 초기화 및 목록 복원
           const searchInput = document.getElementById('attSearchInput');
           searchInput.value = '';
           filteredPool = [...allVolunteers];
@@ -437,7 +435,6 @@
       }
     }
 
-    // 구역 엑셀 파일 업로드
     function handleZoneExcelUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -564,7 +561,6 @@
       }
     }
 
-    // 봉사자 엑셀 파일 업로드
     function handleExcelUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -817,7 +813,7 @@
       alert('봉사자가 명단에서 삭제되었습니다.');
     }
 
-    // 2단계 그리드: 이미 배정된 봉사자는 눈에 띄는 빨간색 블록으로 렌더링
+    // 2단계: 오늘 참여자 그리드 (수정 완료: 이름 최우선 표시 + N호 뱃지 정상 출력)
     function renderTodayVolGrid() {
       const container = document.getElementById('todayVolGrid');
       document.getElementById('todayCountBadge').innerText = `${attendedIds.size}명`;
@@ -839,16 +835,15 @@
         const phoneTail = v.phone ? v.phone.slice(-4) : '번호없음';
 
         if (isAssigned) {
-          // [핵심] 이미 배정된 인원: 뚜렷한 연빨강 배경(bg-rose-100/border-rose-300)과 빨간 뱃지
           return `
             <button type="button" onclick="toggleSelectVol(${v.id})" class="p-1.5 rounded-xl border text-left transition flex flex-col justify-between min-w-0 ${isChecked ? 'bg-rose-500 text-white border-rose-600 shadow-xs' : 'bg-rose-100/90 text-rose-950 border-rose-300 hover:border-rose-400'}">
-              <div class="flex items-center justify-between w-full">
-                <span class="f-body truncate ${isChecked ? 'text-white font-bold' : 'text-rose-950 font-bold'}">${v.name}</span>
-                ${isChecked ? '<i data-lucide="check" class="w-3.5 h-3.5 text-white shrink-0"></i>' : '<span class="f-badge px-1 py-0.2 rounded bg-rose-200/90 text-rose-800 font-bold shrink-0">${assignedZoneNo}호</span>'}
+              <div class="flex items-center justify-between w-full min-w-0">
+                <span class="f-body font-bold truncate flex-1 min-w-0 ${isChecked ? 'text-white' : 'text-rose-950'}">${v.name}</span>
+                <span class="f-badge px-1 py-0.2 rounded font-bold shrink-0 ml-1 ${isChecked ? 'bg-rose-700 text-white' : 'bg-rose-200 text-rose-800'}">${assignedZoneNo}호</span>
               </div>
               <div class="flex items-center justify-between w-full mt-1">
                 <span class="f-badge ${isChecked ? 'text-rose-100' : 'text-rose-700'} font-mono truncate">${phoneTail}</span>
-                ${isChecked ? `<span class="f-badge px-1 py-0.2 rounded bg-rose-700 text-white font-bold shrink-0">${assignedZoneNo}호</span>` : ''}
+                ${isChecked ? '<i data-lucide="check" class="w-3 h-3 text-white shrink-0 ml-1"></i>' : ''}
               </div>
             </button>
           `;
@@ -856,9 +851,11 @@
 
         return `
           <button type="button" onclick="toggleSelectVol(${v.id})" class="p-1.5 rounded-xl border text-left transition flex flex-col justify-between min-w-0 ${isChecked ? 'bg-blue-600 text-white border-blue-600 font-bold shadow-xs' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'}">
-            <div class="flex items-center justify-between w-full">
-              <span class="f-body truncate font-medium">${v.name}</span>
-              ${isChecked ? '<i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-white shrink-0"></i>' : '<div class="w-3 h-3 rounded-full border border-slate-300 bg-white shrink-0"></div>'}
+            <div class="flex items-center justify-between w-full min-w-0">
+              <span class="f-body truncate font-medium flex-1 min-w-0">${v.name}</span>
+              <div class="shrink-0 ml-1">
+                ${isChecked ? '<i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-white shrink-0"></i>' : '<div class="w-3 h-3 rounded-full border border-slate-300 bg-white shrink-0"></div>'}
+              </div>
             </div>
             <div class="mt-1">
               <span class="f-badge ${isChecked ? 'text-blue-200' : 'text-slate-400'} font-mono">${phoneTail}</span>
