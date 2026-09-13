@@ -12,7 +12,6 @@
   
   <style>
     :root {
-      /* 스마트폰 화면 폭에 맞춘 유동형 반응형 글꼴 크기 공식 */
       --fluid-h1: clamp(0.95rem, 4.2vw, 1.15rem);
       --fluid-title: clamp(0.78rem, 3.4vw, 0.92rem);
       --fluid-body: clamp(0.70rem, 2.9vw, 0.82rem);
@@ -23,20 +22,18 @@
     body { 
       font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; 
       -webkit-tap-highlight-color: transparent; 
-      word-break: keep-all; /* 한글 단어 쪼개짐 방지 */
+      word-break: keep-all;
     }
 
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-    /* 유동형 폰트 클래스 */
     .f-h1 { font-size: var(--fluid-h1); line-height: 1.3; }
     .f-title { font-size: var(--fluid-title); line-height: 1.35; }
     .f-body { font-size: var(--fluid-body); line-height: 1.4; }
     .f-sub { font-size: var(--fluid-sub); line-height: 1.3; }
     .f-badge { font-size: var(--fluid-badge); line-height: 1.2; }
 
-    /* 화면 맞춤형 유동 버튼 패딩 */
     .fluid-btn-p {
       padding: clamp(0.35rem, 1.6vw, 0.55rem) clamp(0.35rem, 1.8vw, 0.6rem);
     }
@@ -62,7 +59,7 @@
 
   <main class="p-3 space-y-3 max-w-md mx-auto">
 
-    <!-- 1단계: 당일 출석 체크 (3열 유동 반응형 그리드) -->
+    <!-- 1단계: 당일 출석 체크 (3열 그리드) -->
     <section class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
       <div class="flex items-center justify-between">
         <label class="f-title font-bold text-slate-800 flex items-center gap-1.5">
@@ -89,12 +86,11 @@
         <input type="text" id="attSearchInput" oninput="filterAttendancePool()" placeholder="봉사자 검색 (이름 또는 번호 뒷자리)" class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl f-body focus:outline-none focus:border-blue-500">
       </div>
 
-      <!-- 기종별 반응형 3열 그리드 -->
       <div class="grid grid-cols-3 gap-1.5 max-h-48 overflow-y-auto pr-0.5 no-scrollbar" id="attendanceGrid"></div>
       <p class="f-badge text-slate-400 text-center">* 터치: 출석 등록 / ⚙️ 아이콘: 정보 수정·삭제</p>
     </section>
 
-    <!-- 2단계: 오늘 참여자 중 배정할 인원 다중 선택 -->
+    <!-- 2단계: 오늘 참여자 중 배정할 인원 다중 선택 (3열 그리드로 수정됨) -->
     <section class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs space-y-2.5">
       <div class="flex items-center justify-between">
         <label class="f-title font-bold text-slate-800 flex items-center gap-1.5">
@@ -113,7 +109,8 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-1.5 max-h-44 overflow-y-auto pr-0.5 no-scrollbar" id="todayVolGrid"></div>
+      <!-- 3열 그리드 (grid-cols-3) -->
+      <div class="grid grid-cols-3 gap-1.5 max-h-48 overflow-y-auto pr-0.5 no-scrollbar" id="todayVolGrid"></div>
       <p class="f-badge text-slate-400 text-center">* 이미 배정된 참여자도 터치 선택 후 [배정해제]할 수 있습니다.</p>
     </section>
 
@@ -228,7 +225,6 @@
   <script>
     let allVolunteers = JSON.parse(localStorage.getItem('v6_secure_volunteers')) || [];
 
-    // [구역번호, 구역명, 상세 표기 주소, 권장 팀 수]
     const rawZones = [
       ["1", "동일가스 충전소", "청수로 1 (SK행복충전 동일가스 충전소)", 1],
       ["2", "중동시장", "수성로 241 (중동시장)", 3],
@@ -406,7 +402,6 @@
       renderAssignedBoard();
     }
 
-    // 스마트 엑셀 파싱 및 자동 덮어쓰기
     function handleExcelUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -494,7 +489,7 @@
       event.target.value = '';
     }
 
-    // 1단계: 출석 풀 렌더링 (유동형 폰트 적용)
+    // 1단계: 출석 풀 렌더링 (3열 그리드)
     function renderAttendancePool() {
       const container = document.getElementById('attendanceGrid');
       if (filteredPool.length === 0) {
@@ -668,7 +663,7 @@
       alert('봉사자가 명단에서 삭제되었습니다.');
     }
 
-    // 2단계: 오늘 참여자 그리드
+    // 2단계: 오늘 참여자 그리드 (3열 그리드로 수정됨)
     function renderTodayVolGrid() {
       const container = document.getElementById('todayVolGrid');
       document.getElementById('todayCountBadge').innerText = `${attendedIds.size}명`;
@@ -677,7 +672,7 @@
       const assignedMap = getAssignedVolunteerMap();
 
       if (todayList.length === 0) {
-        container.innerHTML = '<div class="col-span-2 py-4 text-center f-sub text-slate-400 italic">위 1단계에서 오늘 출석한 봉사자를 먼저 체크해 주세요.</div>';
+        container.innerHTML = '<div class="col-span-3 py-4 text-center f-sub text-slate-400 italic">위 1단계에서 오늘 출석한 봉사자를 먼저 체크해 주세요.</div>';
         document.getElementById('selectedVolCountLabel').innerText = '0명';
         updateAssignBtn();
         return;
@@ -691,27 +686,27 @@
 
         if (isAssigned) {
           return `
-            <button type="button" onclick="toggleSelectVol(${v.id})" class="p-2 rounded-xl border text-left transition flex items-center justify-between min-w-0 ${isChecked ? 'bg-rose-50 border-rose-400 text-rose-900 font-bold shadow-2xs' : 'bg-slate-100/90 text-slate-500 border-slate-200'}">
-              <div class="flex flex-col min-w-0">
+            <button type="button" onclick="toggleSelectVol(${v.id})" class="p-1.5 rounded-xl border text-left transition flex flex-col justify-between min-w-0 ${isChecked ? 'bg-rose-50 border-rose-400 text-rose-900 font-bold shadow-2xs' : 'bg-slate-100/90 text-slate-500 border-slate-200'}">
+              <div class="flex items-center justify-between w-full">
                 <span class="f-body truncate ${isChecked ? 'text-rose-950 font-bold' : 'text-slate-600 font-medium'}">${v.name}</span>
-                <span class="f-badge text-slate-400 font-mono">${phoneTail}</span>
+                ${isChecked ? '<i data-lucide="check" class="w-3 h-3 text-rose-600 shrink-0"></i>' : ''}
               </div>
-              <div class="flex items-center gap-1 shrink-0 ml-1">
-                <span class="f-badge px-1 py-0.5 rounded ${isChecked ? 'bg-rose-200 text-rose-800' : 'bg-slate-200 text-slate-600'} font-bold">${assignedZoneNo}호</span>
-                ${isChecked ? '<i data-lucide="check" class="w-3 h-3 text-rose-600"></i>' : ''}
+              <div class="flex items-center justify-between w-full mt-1">
+                <span class="f-badge text-slate-400 font-mono truncate">${phoneTail}</span>
+                <span class="f-badge px-1 py-0.2 rounded ${isChecked ? 'bg-rose-200 text-rose-800' : 'bg-slate-200 text-slate-600'} font-bold shrink-0">${assignedZoneNo}호</span>
               </div>
             </button>
           `;
         }
 
         return `
-          <button type="button" onclick="toggleSelectVol(${v.id})" class="p-2 rounded-xl border text-left transition flex items-center justify-between min-w-0 ${isChecked ? 'bg-blue-600 text-white border-blue-600 font-bold shadow-xs' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'}">
-            <div class="flex flex-col min-w-0">
+          <button type="button" onclick="toggleSelectVol(${v.id})" class="p-1.5 rounded-xl border text-left transition flex flex-col justify-between min-w-0 ${isChecked ? 'bg-blue-600 text-white border-blue-600 font-bold shadow-xs' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'}">
+            <div class="flex items-center justify-between w-full">
               <span class="f-body truncate font-medium">${v.name}</span>
-              <span class="f-badge ${isChecked ? 'text-blue-200' : 'text-slate-400'} font-mono">${phoneTail}</span>
+              ${isChecked ? '<i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-white shrink-0"></i>' : '<div class="w-3 h-3 rounded-full border border-slate-300 bg-white shrink-0"></div>'}
             </div>
-            <div class="shrink-0 ml-1">
-              ${isChecked ? '<i data-lucide="check-circle-2" class="w-4 h-4 text-white"></i>' : '<div class="w-3.5 h-3.5 rounded-full border border-slate-300 bg-white"></div>'}
+            <div class="mt-1">
+              <span class="f-badge ${isChecked ? 'text-blue-200' : 'text-slate-400'} font-mono">${phoneTail}</span>
             </div>
           </button>
         `;
@@ -822,7 +817,6 @@
       renderZones();
     }
 
-    // 다중 배정 확정
     function confirmMultipleAssignment() {
       if (selectedVolIds.size === 0) {
         alert('오늘 참여자 중 배정할 봉사자를 1명 이상 선택해 주세요.');
@@ -872,7 +866,6 @@
       alert(`[배정 완료]\n${selectedZone.no}호 (${selectedZone.name})\n👉 ${addedNames.join(', ')} (${addedNames.length}명) 등록 완료!`);
     }
 
-    // 4단계 현황판 렌더링
     function renderAssignedBoard() {
       const container = document.getElementById('assignedBoard');
       const activeZones = zones.filter(z => z.assignedVols.length > 0);
